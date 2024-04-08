@@ -1,0 +1,11765 @@
+const GAMEMODES = ["race", "pvp", "hell"];
+const DEV_SKINS = [0];
+const DEFAULT_PLAYER_NAME = "INFRINGIO"; // TODO Remove
+let levelSelectors = [];    //received from server
+let TILE_ANIMATION_FILTERED = {};
+let OBJ_ANIMATION_FILTERED = {};
+let ghostname = null;
+
+var util = {},
+    vec2 = {
+        'make': function (a, b) {
+            return {
+                'x': a,
+                'y': b
+            };
+        },
+        'random': function () {
+            return vec2.normalize({
+                'x': 0x2 * Math.random() - 0x1,
+                'y': 0x2 * Math.random() - 0x1
+            });
+        },
+        'copy': function (vec) {
+            return {
+                'x': vec.x,
+                'y': vec.y
+            };
+        },
+        'add': function (a, b) {
+            return {
+                'x': a.x + b.x,
+                'y': a.y + b.y
+            };
+        },
+        'subtract': function (a, b) {
+            return {
+                'x': a.x - b.x,
+                'y': a.y - b.y
+            };
+        },
+        'scale': function (a, b) {
+            return {
+                'x': a.x * b,
+                'y': a.y * b
+            };
+        },
+        'multiply': function (a, b) {
+            return {
+                'x': a.x * b.x,
+                'y': a.y * b.y
+            };
+        },
+        'divide': function (a, b) {
+            return {
+                'x': a.x / b.x,
+                'y': a.y / b.y
+            };
+        },
+        'magnitude': function (_0xbb06f8) {
+            return Math.sqrt(_0xbb06f8.x * _0xbb06f8.x + _0xbb06f8.y * _0xbb06f8.y);
+        },
+        'normalize': function (a) {
+            var b = vec2.magnitude(a);
+            return 0x0 !== b ? {
+                'x': a.x / b,
+                'y': a.y / b
+            } : {
+                'x': 0x0,
+                'y': 0x1
+            };
+        },
+        'distance': function (u, v) {
+            return vec2.magnitude(vec2.subtract(u, v));
+        },
+        'dot': function (a, b) {
+            return a.x * b.x + a.y * b.y;
+        },
+        'inverse': function (a) {
+            return {
+                'x': -0x1 * a.x,
+                'y': -0x1 * a.y
+            };
+        },
+        'lerp': function (_0x449c3f, _0x9a844a, _0x47869e) {
+            return vec2.add(vec2.scale(_0x449c3f, 0x1 - _0x47869e), vec2.scale(_0x9a844a, _0x47869e));
+        },
+        'rotate': function (_0x5177b0, _0x45a0e4) {
+            var _0x315ef4 = Math.cos(_0x45a0e4);
+            _0x45a0e4 = Math.sin(_0x45a0e4);
+            return {
+                'x': _0x5177b0.x * _0x315ef4 + _0x5177b0.y * _0x45a0e4,
+                'y': _0x5177b0.x * -_0x45a0e4 + _0x5177b0.y * _0x315ef4
+            };
+        },
+        'angle': function (_0x3f22f3, _0x362da6) {
+            var _0x3138d2 = vec2.dot(_0x3f22f3, _0x362da6);
+            return Math.acos(_0x3138d2 / (Math.sqrt(_0x3f22f3.x * _0x3f22f3.x + _0x3f22f3.y * _0x3f22f3.y) * Math.sqrt(_0x362da6.x * _0x362da6.x + _0x362da6.y * _0x362da6.y)));
+        },
+        'average': function (_0x8aecc1) {
+            for (var _0x506ec6 = vec2.create(), _0x466cf6 = 0x0; _0x466cf6 < _0x8aecc1.length; _0x466cf6++) _0x506ec6 = vec2.add(_0x506ec6, _0x8aecc1[_0x466cf6]);
+            return vec2.scale(_0x506ec6, 0x1 / _0x8aecc1.length);
+        },
+        'chop': function (vec) {
+            return vec2.make(parseInt(vec.x), parseInt(vec.y));
+        },
+        'equals': function (u, v) {
+            return u.x === v.x && u.y === v.y;
+        },
+        'toArray': function (vec) {
+            return [vec.x, vec.y];
+        }
+    },
+    vec4 = {};
+vec4.make = function (_0x352992, _0x589705, _0x474312, _0x28bc34) {
+    return {
+        x: _0x352992,
+        y: _0x589705,
+        z: _0x474312,
+        w: _0x28bc34
+    };
+};
+vec4.copy = function (_0x26ffa4) {
+    return {
+        x: _0x26ffa4.x,
+        y: _0x26ffa4.y,
+        z: _0x26ffa4.z,
+        w: _0x26ffa4.w
+    };
+};
+vec4.add = function (_0x5453a6, _0x3ad8f6) {
+    return {
+        x: _0x5453a6.x + _0x3ad8f6.x,
+        y: _0x5453a6.y + _0x3ad8f6.y,
+        z: _0x5453a6.z + _0x3ad8f6.z,
+        w: _0x5453a6.w + _0x3ad8f6.w
+    };
+};
+vec4.subtract = function (_0xdcb7eb, _0x309cab) {
+    return {
+        x: _0xdcb7eb.x - _0x309cab.x,
+        y: _0xdcb7eb.y - _0x309cab.y,
+        z: _0xdcb7eb.z - _0x309cab.z,
+        w: _0xdcb7eb.w - _0x309cab.w
+    };
+};
+vec4.scale = function (_0x1413b9, _0x48339f) {
+    return {
+        x: _0x1413b9.x * _0x48339f,
+        y: _0x1413b9.y * _0x48339f,
+        z: _0x1413b9.z * _0x48339f,
+        w: _0x1413b9.w * _0x48339f
+    };
+};
+vec4.multiply = function (_0x181caa, _0x1d5e43) {
+    return {
+        x: _0x181caa.x * _0x1d5e43.x,
+        y: _0x181caa.y * _0x1d5e43.y,
+        z: _0x181caa.z * _0x1d5e43.z,
+        w: _0x181caa.w * _0x1d5e43.w
+    };
+};
+vec4.lerp = function (u, v, alpha) {
+    return vec4.add(vec4.scale(u, 0x1 - alpha), vec4.scale(v, alpha));
+};
+vec4.toArray = function (_0x583eb8) {
+    return [_0x583eb8.x, _0x583eb8.y, _0x583eb8.z, _0x583eb8.w];
+};
+util.line2 = {};
+util.intersection = {};
+util.time = {};
+util.sprite = {};
+util.line2.normal = function (_0x542843) {
+    return vec2.normalize({
+        'x': _0x542843.b.y - _0x542843.a.y,
+        'y': -0x1 * (_0x542843.b.x - _0x542843.a.x)
+    });
+};
+util.intersection.pointRectangle = function (_0x1f2e5d, _0x4fb4f3, _0x195e9a) {
+    return _0x4fb4f3.x <= _0x1f2e5d.x && _0x4fb4f3.x + _0x195e9a.x > _0x1f2e5d.x && _0x4fb4f3.y <= _0x1f2e5d.y && _0x4fb4f3.y + _0x195e9a.y > _0x1f2e5d.y;
+};
+util.intersection.pointPoly = function (_0x3050fe, _0x3fb4ac) {
+    var _0x315951, _0x3d41ed, _0x3833a5 = false,
+        _0x33ce75 = _0x3fb4ac.length;
+    _0x315951 = 0x0;
+    for (_0x3d41ed = _0x33ce75 - 0x1; _0x315951 < _0x33ce75; _0x3d41ed = _0x315951++) _0x3fb4ac[_0x315951].y > _0x3050fe.y !== _0x3fb4ac[_0x3d41ed].y > _0x3050fe.y && _0x3050fe.x < (_0x3fb4ac[_0x3d41ed].x - _0x3fb4ac[_0x315951].x) * (_0x3050fe.y - _0x3fb4ac[_0x315951].y) / (_0x3fb4ac[_0x3d41ed].y - _0x3fb4ac[_0x315951].y) + _0x3fb4ac[_0x315951].x && (_0x3833a5 = !_0x3833a5);
+    return _0x3833a5;
+};
+util.intersection.lineLine = function (_0x19d86f, _0x3c89c8) {
+    var _0x1f1a11, _0x5c28c9, _0x2b1fa9, _0x9c8117;
+    _0x1f1a11 = _0x19d86f.b.x - _0x19d86f.a.x;
+    _0x5c28c9 = _0x19d86f.b.y - _0x19d86f.a.y;
+    _0x2b1fa9 = _0x3c89c8.b.x - _0x3c89c8.a.x;
+    _0x9c8117 = _0x3c89c8.b.y - _0x3c89c8.a.y;
+    var _0x5c5c20;
+    _0x5c5c20 = (-_0x5c28c9 * (_0x19d86f.a.x - _0x3c89c8.a.x) + _0x1f1a11 * (_0x19d86f.a.y - _0x3c89c8.a.y)) / (-_0x2b1fa9 * _0x5c28c9 + _0x1f1a11 * _0x9c8117);
+    _0x2b1fa9 = (_0x2b1fa9 * (_0x19d86f.a.y - _0x3c89c8.a.y) - _0x9c8117 * (_0x19d86f.a.x - _0x3c89c8.a.x)) / (-_0x2b1fa9 * _0x5c28c9 + _0x1f1a11 * _0x9c8117);
+    if (0x0 <= _0x5c5c20 && 0x1 >= _0x5c5c20 && 0x0 <= _0x2b1fa9 && 0x1 >= _0x2b1fa9) return _0x1f1a11 = _0x19d86f.a.x + _0x2b1fa9 * _0x1f1a11, _0x5c28c9 = _0x19d86f.a.y + _0x2b1fa9 * _0x5c28c9, _0x5c28c9 = {}, _0x3c89c8 = util.line2.normal(_0x3c89c8), {
+        'intersection': _0x5c28c9,
+        'normal': _0x3c89c8,
+        'distance': vec2.distance(_0x5c28c9, _0x19d86f.a)
+    };
+    _0x5c28c9.x = _0x1f1a11;
+    _0x5c28c9.y = _0x5c28c9;
+};
+util.intersection.lineCircle = function (_0x23b739, _0x52f453, _0x25831c) {
+    var _0x4f1d7f = util.intersection.lineNearestPoint(_0x23b739, _0x52f453);
+    if (vec2.equals(_0x4f1d7f, _0x52f453.a)) {
+        var _0x1ab3a2 = vec2.subtract(_0x23b739, _0x52f453.a);
+        _0x23b739 = vec2.magnitude(_0x1ab3a2);
+        if (!(_0x23b739 >= _0x25831c)) return _0x25831c = vec2.normalize(_0x1ab3a2), {
+            'intersection': _0x52f453.a,
+            'normal': _0x25831c,
+            'dist': _0x23b739
+        };
+    } else {
+        if (vec2.equals(_0x4f1d7f, _0x52f453.b)) {
+            _0x1ab3a2 = vec2.subtract(_0x23b739, _0x52f453.b);
+            _0x23b739 = vec2.magnitude(_0x1ab3a2);
+            if (_0x23b739 >= _0x25831c) return;
+            _0x25831c = vec2.normalize(_0x1ab3a2);
+            return {
+                'intersection': _0x52f453.b,
+                'normal': _0x25831c,
+                'distance': _0x23b739
+            };
+        }
+        _0x1ab3a2 = vec2.subtract(_0x23b739, _0x4f1d7f);
+        _0x23b739 = vec2.magnitude(_0x1ab3a2);
+        if (!(_0x23b739 >= _0x25831c)) return _0x25831c = vec2.normalize(_0x1ab3a2), {
+            'intersection': _0x4f1d7f,
+            'normal': _0x25831c,
+            'distance': _0x23b739
+        };
+    }
+};
+util.intersection.polygonLine = function (_0x35e9bb, _0x180ded) {
+    for (var _0x361de = [], _0x2d1537 = 0x0; _0x2d1537 < _0x180ded.v.length; _0x2d1537++) {
+        var _0xaeb880 = util.intersection.lineLine(_0x35e9bb, {
+            'a': _0x180ded.v[_0x2d1537],
+            'b': _0x180ded.v[_0x2d1537 + 0x1 < _0x180ded.v.length ? _0x2d1537 + 0x1 : 0x0]
+        });
+        _0xaeb880 && _0x361de.push(_0xaeb880);
+    }
+    if (!(0x1 > _0x361de.length)) {
+        _0x35e9bb = _0x361de[0x0];
+        for (_0x2d1537 = 0x1; _0x2d1537 < _0x361de.length; _0x2d1537++) _0x361de[_0x2d1537].distance < _0x35e9bb.distance && (_0x35e9bb = _0x361de[_0x2d1537]);
+        return _0x35e9bb;
+    }
+};
+util.intersection.polygonCircle = function (_0x26d962, _0x358ffa, _0x2921d5) {
+    for (var _0x40a38a = [], _0x26257e = 0x0; _0x26257e < _0x358ffa.v.length; _0x26257e++) {
+        var _0x5eeed2 = util.intersection.lineCircle(_0x26d962, {
+            'a': _0x358ffa.v[_0x26257e],
+            'b': _0x358ffa.v[_0x26257e + 0x1 < _0x358ffa.v.length ? _0x26257e + 0x1 : 0x0]
+        }, _0x2921d5);
+        _0x5eeed2 && _0x40a38a.push(_0x5eeed2);
+    }
+    if (!(0x1 > _0x40a38a.length)) {
+        _0x26d962 = _0x40a38a[0x0];
+        for (_0x26257e = 0x1; _0x26257e < _0x40a38a.length; _0x26257e++) _0x40a38a[_0x26257e].distance < _0x26d962.distance && (_0x26d962 = _0x40a38a[_0x26257e]);
+        return _0x26d962;
+    }
+};
+util.intersection.lineNearestPoint = function (_0x5a6af6, _0x4deaa7) {
+    var _0x5842b2 = vec2.subtract(_0x4deaa7.b, _0x4deaa7.a);
+    _0x5a6af6 = vec2.subtract(_0x5a6af6, _0x4deaa7.a);
+    _0x5a6af6 = vec2.dot(_0x5a6af6, _0x5842b2);
+    if (0x0 >= _0x5a6af6) return _0x4deaa7.a;
+    var _0x5e06d3 = vec2.dot(_0x5842b2, _0x5842b2);
+    return _0x5e06d3 <= _0x5a6af6 ? _0x4deaa7.b : vec2.add(_0x4deaa7.a, vec2.scale(_0x5842b2, _0x5a6af6 / _0x5e06d3));
+};
+util.time.now = function () {
+    return Date.now();
+};
+util.sprite.getSprite = function (spriteMap, index, x32 = false) {
+    var WIDTH = spriteMap.width;
+    var height = spriteMap.height;
+    index *= (x32 ? Display.TEXRES : Display.TEXRES);
+    var row = parseInt(Math.floor(index / WIDTH) * (Display.TEXRES));
+    return row > height ? [0x0, 0x0] : [index % WIDTH, row];
+};
+var requestAnimFrameFunc = function () {
+    return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function (_0x42507e) {
+        window.setTimeout(_0x42507e, 0x21);
+    };
+}(),
+    cancelAnimFrameFunc = function () {
+        return window.cancelAnimationFrame || window.webkitCancelRequestAnimationFrame || window.mozCancelRequestAnimationFrame || window.oCancelRequestAnimationFrame || window.msCancelRequestAnimationFrame || clearTimeout;
+    }();
+"use strict";
+/* global app, util, vec2, squar */
+/* global PlayerObject, CoinObject, CheckObject */
+
+var shor2 = {}; // Two Shorts 32bits // Stored as an int32
+/* ======================================================================================== */
+
+shor2.encode = function (/* short */ a, /* short */ b) {
+    return 0 | (parseInt(a) & 0x0000FFFF) | ((parseInt(b) << 16) & 0xFFFF0000);
+};
+
+/* returns <vec2> */
+shor2.decode = function (/* shor2 */ a) {
+    return vec2.make(a & 0xFFFF, (a >> 16) & 0xFFFF);
+};
+
+/* returns [x,y] */
+shor2.asArray = function (/* shor2 */ a) {
+    return [a & 0xFFFF, (a >> 16) & 0xFFFF];
+};
+
+var td32 = {}; // Tile Data 32bit // Stored as an int32
+/* ======================================================================================== */
+
+td32.encode = function (/* 11bit int */ index, /* 4bit int */ bump, /* boolean */ depth, /* byte */ definition, /* byte */ data) {
+    return 0 | (parseInt(index) & 0x000007FF) | ((parseInt(bump) << 11) & 0x00007800) | (((depth ? 1 : 0) << 15) & 0x00008000) | ((parseInt(definition) << 16) & 0x00FF0000) | ((parseInt(data) << 24) & 0xFF000000);
+};
+
+td32.decode16 = function (/* td32 */ a) {
+    return { index: a & 0x7FF, bump: (a >> 11) & 0xF, depth: ((a >> 15) & 0x1) === 1 };
+};
+
+td32.decode = function (/* td32 */ a) {
+    var i = (a >> 16) & 0xFF;
+    var def = !td32.TILE_PROPERTIES[i] ? td32.TILE_PROPERTIES[0] : td32.TILE_PROPERTIES[i];
+    return { index: a & 0x7FF, bump: (a >> 11) & 0xF, depth: ((a >> 15) & 0x1) === 1, definition: def, data: (a >> 24) & 0xFF };
+};
+
+td32.bump = function (/* td32 */ a, /*4bit unsigned integer*/ b) {
+    return (a & 0b11111111111111111000011111111111) | ((b << 11) & 0b00000000000000000111100000000000);
+};
+
+td32.underbump = function (/* td32 */ a, /*4bit unsigned integer*/ b) {
+    let res = td32.bump(a, b);
+    return -res;
+};
+
+td32.data = function (/* td32 */ a, /*1 byte uint*/ b) {
+    return (a & 0x00FFFFFF) | ((b << 24) & 0xFF000000);
+};
+
+td32.asArray = function (/* td32 */ a) {
+    return [a & 0x7FF, (a >> 11) & 0xF, ((a >> 15) & 0x1) === 1, (a >> 16) & 0xFF, (a >> 24) & 0xFF];
+};
+
+
+var tdAny = {}; // Tile Data Any // Deluxe compatibility
+/* ======================================================================================== */
+
+
+tdAny.encode = function (/* 11bit int */ index, /* 4bit int */ bump, /* boolean */ depth, /* byte */ definition, /* byte */ data) {
+    return [index, bump, parseInt(depth), definition, data];
+};
+
+tdAny.decode16 = function (/* tdAny */ a) {
+    return {
+        index: a[0],
+        bump: a[1],
+        depth: parseInt(a[2])
+    };
+};
+
+tdAny.decode = function (/* tdAny */ a) {
+    var i = a[3];
+    var def = !td32.TILE_PROPERTIES[i] ? td32.TILE_PROPERTIES[0] : td32.TILE_PROPERTIES[i];
+    return {
+        index: a[0],
+        bump: a[1],
+        depth: parseInt(a[2]),
+        definition: def,
+        data: isNaN(a[4]) ? a[4] : parseInt(a[4])
+    }
+};
+
+tdAny.bump = function (/* tdAny */ a, /*4bit unsigned integer*/ b) {
+    return [a[0], b & 0x0000000F, a[2], a[3], a[4]];
+};
+
+tdAny.data = function (/* tdAny */ a, /*1 byte uint*/ b) {
+    return [a[0], a[1], a[2], a[3], b];
+};
+
+tdAny.asArray = function (/* tdAny */ a) {
+    return [a[0], a[1], a[2], a[3], a[4], a[5]]
+};
+
+td32.TRIGGER = {
+    TYPE: {
+        TOUCH: 0x00,
+        DOWN: 0x01,
+        PUSH: 0x02,
+        FIREBALL: 0x03,
+        SHELL: 0x04,
+        STAND: 0x05,
+        SMALL_BUMP: 0x10,
+        BIG_BUMP: 0x11
+    }
+};
+
+td32.GEN_FUNC = {};
+
+td32.GEN_FUNC.BUMP = function (game, pid, td, level, zone, x, y, type) {
+    game.world.getZone(level, zone).bump(x, y);
+    var tdim = vec2.make(1., 0.15);
+    var tpos = vec2.make(x, y + 1.);
+    for (var i = 0; i < game.objects.length; i++) {
+        var obj = game.objects[i];
+        if (!obj.dead && obj.level === level && obj.zone === zone && obj.dim) {
+            if (squar.intersection(tpos, tdim, obj.pos, obj.dim)) {
+                if (obj instanceof PlayerObject) { obj.bounce(); }
+                else if (obj.bounce) { obj.bounce(); }
+                else if (obj.bonk) { obj.bonk(); }
+                else if (obj instanceof CoinObject) {
+                    //this happens when you hit a bumpable block with a coin above
+                    if (game.pid === pid) {
+                        obj.playerCollide(game.getPlayer());
+                        game.world.getZone(level, zone).coin(obj.pos.x, obj.pos.y);
+                    }
+                }
+            }
+        }
+    }
+};
+
+td32.GEN_FUNC.UNDERBUMP = function (game, pid, td, level, zone, x, y, type) {
+    game.world.getZone(level, zone).underbump(x, y);
+};
+
+
+td32.GEN_FUNC.BREAK = function (game, pid, td, level, zone, x, y, type) {
+    var rep = 30; // Replacement td32 data for broken tile.
+    game.world.getZone(level, zone).break(x, y, rep);
+    var tdim = vec2.make(1., 0.15);
+    var tpos = vec2.make(x, y + 1.);
+    for (var i = 0; i < game.objects.length; i++) {
+        var obj = game.objects[i];
+        if (!obj.dead && obj.level === level && obj.zone === zone && obj.dim) {
+            if (squar.intersection(tpos, tdim, obj.pos, obj.dim)) {
+                if (obj instanceof PlayerObject) { obj.bounce(); }
+                else if (obj.bounce) { obj.bounce(); }
+                else if (obj.bonk) { obj.bonk(); }
+                else if (obj instanceof CoinObject) {
+                    //this happens when you break a brick as non-small Mario with a coin above
+                    if (game.pid === pid) {
+                        obj.playerCollide(game.getPlayer());
+                        game.world.getZone(level, zone).coin(obj.pos.x, obj.pos.y);
+                    }
+                }
+            }
+        }
+    }
+};
+
+
+
+td32.TILE_PROPERTIES = {
+    /* Air */
+    0x00: {
+        COLLIDE: false,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) { }
+    },
+    /* Solid Standard */
+    0x01: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) { }
+    },
+    /* Solid Bumpable */
+    0x02: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Small bump */
+                /* Big bump */
+                case 0x10:
+                case 0x11:
+                case 0x04: {
+                    if (game.pid === pid) { game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    break;
+                }
+            }
+        }
+    },
+    /* Solid Breakable Normal */
+    0x03: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Small bump */
+                case 0x10: {
+                    if (game.pid === pid) { game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    break;
+                }
+                /* Shell */
+                /* Big bump */
+                case 0x04:
+                    case 0x11: {
+                        if (game.pid === pid) { game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                        td32.GEN_FUNC.BREAK(game, pid, td, level, zone, x, y, type);
+                        break;
+                    }
+            }
+        }
+    },
+    /* Solid Damage */
+    0x04: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Touch */
+                case 0x00: {
+                    if (game.pid === pid) {
+                        var data = Math.max(0, Math.min(1, parseInt(td.data) || 0));
+                        switch (data) {
+                            case 1 : { game.getPlayer().kill(); break; }
+                            default : { game.getPlayer().damage(); break; }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    },
+    /* Semisolid */
+    0x05: {
+        COLLIDE: true,
+        PLATFORM: true,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) { }
+    },
+    /* Semisolid Weak */
+    0x06: {
+        COLLIDE: true,
+        PLATFORM: "WEAK",
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) { }
+    },
+    /* Water Standard */
+    7: {
+        COLLIDE: false,
+        HIDDEN: false,
+        ASYNC: true,
+        WATER: 1,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) { }
+    },
+    /* Water Surface */
+    8: {
+        COLLIDE: false,
+        HIDDEN: false,
+        ASYNC: true,
+        WATER: 2,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) { }
+    },
+    /* Water Current */
+    9: {
+        COLLIDE: false,
+        HIDDEN: false,
+        ASYNC: true,
+        WATER: 1,
+        WATER_CURRENT: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) { }
+    },
+    /* Ice Block */
+    10: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: true,
+        ICE: 2,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Stand */
+                case 0x05: {
+                    if (game.pid === pid) {
+                        PlayerObject.MOVE_SPEED_ACCEL = 1
+                        PlayerObject.MOVE_SPEED_ACCEL_AIR = 1
+                        PlayerObject.MOVE_SPEED_DECEL = 0.0125
+                        PlayerObject.ANIMATION_RATE = 1
+                    }
+                }
+            }
+        }
+    },
+    /* Note Block */
+    11: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Stand */
+                case 0x05: {
+                    if (game.pid === pid) { game.getPlayer().bounce(); game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    break;
+                }
+                
+                /* Small Bump */
+                /* Big Bump */
+                case 0x10:
+                    case 0x11: {
+                        if (game.pid === pid) { game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                        td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                        break;
+                    }
+                }
+            }
+        },
+        /* Item Note Block */
+        12: {
+            COLLIDE: true,
+            HIDDEN: false,
+            ASYNC: true,
+            TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+                switch (type) {
+                    /* Stand */
+                    /* Shell */
+                    case 0x05:
+                        case 0x04: {
+                            if (game.pid === pid) { game.getPlayer().bounce(); game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                            
+                            var tdType = game.world.getZone(level, zone).tileDataType === 1 ? tdAny : td32;
+                            var rep = tdType.encode(td.index, 0, td.depth, 0xb, 0); // Replacement td32 data for tile.
+                            game.world.getZone(level, zone).replace(x, y, rep);
+                            
+                            if (td.data === 84 /* StarObject */) {
+                                game.createObject(td.data, level, zone, vec2.make(x, y), [shor2.encode(x, y), false, true]);
+                            } else {
+                                game.createObject(td.data, level, zone, vec2.make(x, y), [shor2.encode(x, y), true]);
+                            }
+                            
+                            td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                            game.world.getZone(level, zone).play(x, y, "item.mp3", 1., 0.04);
+                            break;
+                        }
+                        
+                        /* Small bump */
+                        /* Big bump */
+                        case 0x10:
+                            case 0x11: {
+                    if (game.pid === pid) { game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                    var rep = td32.encode(td.index, 0, td.depth, 0xb, 0); // Replacement td32 data for tile.
+                    game.world.getZone(level, zone).replace(x, y, rep);
+                    game.createObject(td.data, level, zone, vec2.make(x, y), [shor2.encode(x, y), static = false, note = false]);
+                    
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    game.world.getZone(level, zone).play(x, y, "item.mp3", 1., 0.04);
+                    break;
+                }
+            }
+        }
+    },
+    /* Flip Block */
+    14: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            if ((app.net.gameMode === 1 || app.net.gameMode === 2) && game.pid !== pid) return;
+            switch (type) {
+                /* Small bump */
+                /* Big bump */
+                case 0x10:
+                    case 0x11: {
+                        if (game.pid === pid) { game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                        var rep = game.world.getZone(level, zone).tileDataType === 1 ? TDANY_USED_BLOCK : TD32_USED_BLOCK; // unused because it is a parameter, not a variable
+                    game.world.getZone(level, zone).replaceFlip(x, y, td.data);
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    game.world.getZone(level, zone).play(x, y, "bump.mp3", 1., 0.04);
+                    break;
+                }
+            }
+        }
+    },
+    /* Air Damage */
+    15: {
+        COLLIDE: false,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Touch */
+                case 0x00: {
+                    if (game.pid === pid) {
+                        var data = Math.max(0, Math.min(1, parseInt(td.data) || 0));
+                        switch (data) {
+                            case 1 : { game.getPlayer().kill(); break; }
+                            default : { game.getPlayer().damage(); break; }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    },
+    /* Ice Tile Block */
+    13: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: false,
+        ICE: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type, obj) {
+            switch (type) {
+                /* Fireball */
+                case 0x03: {
+                    game.world.getZone(level, zone).replace(x, y, td.data);
+                    obj.kill();
+                    break;
+                }
+            }
+        }
+    },
+    /* Ice Object Block */
+    16: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: false,
+        ICE: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type, obj) {
+            switch (type) {
+                /* Fireball */
+                case 0x03: {
+                    var rep = 30; // td32 replacement tile
+                    game.world.getZone(level, zone).replace(x, y, rep);
+                    game.createObject(td.data, level, zone, vec2.make(x, y), [shor2.encode(x, y)]);
+                    obj.kill();
+                    break;
+                }
+            }
+        }
+    },
+
+    /* Ice Semisolid */
+    23: {
+        COLLIDE: true,
+        HIDDEN: false,
+        PLATFORM: "ICE",
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) { }
+    },
+
+    /* Item Block Standard */
+    0x11: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            if ((app.net.gameMode === 2) && game.pid !== pid) return;
+            switch (type) {
+                /* Small bump */
+                /* Big bump */
+                /* Shell */
+                case 0x10:
+                case 0x11:
+                case 0x04: {
+                    if (game.pid === pid) { game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                    var rep = game.world.getZone(level, zone).tileDataType === 1 ? TDANY_USED_BLOCK : TD32_USED_BLOCK; // Replacement td32 data for tile.
+                    game.world.getZone(level, zone).replace(x, y, rep);
+                    game.createObject(td.data, level, zone, vec2.make(x, y), [shor2.encode(x, y)]);
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    game.world.getZone(level, zone).play(x, y, "item.mp3", 1., 0.04);
+                    break;
+                }
+            }
+        }
+    },
+    /* Item Block Infinite */
+    25: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            if ((app.net.gameMode === 2) && game.pid !== pid) return;
+            switch (type) {
+                /* Small bump */
+                /* Big bump */
+                /* Shell */
+                case 0x10:
+                case 0x11:
+                case 0x04: {
+                    if (game.pid === pid) { game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                    game.createObject(td.data, level, zone, vec2.make(x, y), [shor2.encode(x, y)]);
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    game.world.getZone(level, zone).play(x, y, "item.mp3", 1., 0.04);
+                    break;
+                }
+            }
+        }
+    },
+    /* Coin Block Standard */
+    0x12: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Small bump */
+                /* Big bump */
+                /* Shell */
+                case 0x10:
+                case 0x11:
+                case 0x04: {
+                    if (game.pid === pid) {
+                        game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type));
+                        game.addCoin(false, true);
+                    }
+                    var rep = game.world.getZone(level, zone).tileDataType === 1 ? TDANY_USED_BLOCK : TD32_USED_BLOCK; // Replacement td32 data for tile.
+                    game.world.getZone(level, zone).replace(x, y, rep);
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    game.world.getZone(level, zone).coin(x, y + 1);
+                    break;
+                }
+            }
+        }
+    },
+    /* Coin Block Multi */
+    0x13: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Small bump */
+                /* Big bump */
+                /* Shell */
+                case 0x10:
+                case 0x11:
+                case 0x04: {
+                    if (game.pid === pid) {
+                        game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type));
+                        game.addCoin(false, true);
+                    }
+                    if (td.data > 1) {
+                        var raw = game.world.getZone(level, zone).tile(x, y);
+                        var rep = td32.data(raw, td.data - 1);    // Replacement td32 data for tile.
+                        var rep2 = td32.encode(td.index, td.bump, td.depth, 1, 0);      // Replacement td32 data for cooldown.
+                        game.world.getZone(level, zone).cooldown(x, y, rep2, rep);
+                        game.world.getZone(level, zone).coin(x, y + 1);
+                        td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    }
+                    else {
+                        var rep = game.world.getZone(level, zone).tileDataType === 1 ? TDANY_USED_BLOCK : TD32_USED_BLOCK; // Replacement td32 data for tile.
+                        game.world.getZone(level, zone).replace(x, y, rep);
+                        game.world.getZone(level, zone).coin(x, y + 1);
+                        td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    }
+                    break;
+                }
+            }
+        }
+    },
+    /* Progressive Item Block */
+    20: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            if ((app.net.gameMode === 2) && game.pid !== pid) return;
+            switch (type) {
+                /* Small bump */
+                /* Big bump */
+                /* Shell */
+                case 0x10:
+                case 0x04: {
+                    if (game.pid === pid) { game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                    var rep = game.world.getZone(level, zone).tileDataType === 1 ? TDANY_USED_BLOCK : TD32_USED_BLOCK; // Replacement td32 data for tile.
+                    game.world.getZone(level, zone).replace(x, y, rep);
+                    game.createObject(81, level, zone, vec2.make(x, y), [shor2.encode(x, y)]);
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    game.world.getZone(level, zone).play(x, y, "item.mp3", 1., 0.04);
+                    break;
+                }
+                case 0x11: {
+                    if (game.pid === pid) { game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                    var rep = game.world.getZone(level, zone).tileDataType === 1 ? TDANY_USED_BLOCK : TD32_USED_BLOCK; // Replacement td32 data for tile.
+                    game.world.getZone(level, zone).replace(x, y, rep);
+                    game.createObject(82, level, zone, vec2.make(x, y), [shor2.encode(x, y)]);
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    game.world.getZone(level, zone).play(x, y, "item.mp3", 1., 0.04);
+                    break;
+                }
+            }
+        }
+    },
+    /* Invisible Progressive Item Block */
+    26: {
+        COLLIDE: true,
+        HIDDEN: true,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Small bump */
+                /* Big bump */
+                case 0x10: {
+                    if (game.pid === pid) { game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                    var rep = game.world.getZone(level, zone).tileDataType === 1 ? TDANY_USED_BLOCK : TD32_USED_BLOCK; // Replacement td32 data for tile.
+                    game.world.getZone(level, zone).replace(x, y, rep);
+                    game.createObject(81, level, zone, vec2.make(x, y), [shor2.encode(x, y)]);
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    game.world.getZone(level, zone).play(x, y, "item.mp3", 1., 0.04);
+                    break;
+                }
+                case 0x11: {
+                    if (game.pid === pid) { game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                    var rep = game.world.getZone(level, zone).tileDataType === 1 ? TDANY_USED_BLOCK : TD32_USED_BLOCK; // Replacement td32 data for tile.
+                    game.world.getZone(level, zone).replace(x, y, rep);
+                    game.createObject(82, level, zone, vec2.make(x, y), [shor2.encode(x, y)]);
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    game.world.getZone(level, zone).play(x, y, "item.mp3", 1., 0.04);
+                    break;
+                }
+            }
+        }
+    },
+    /* Half Tile Standard */
+    28: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: false,
+        HALF: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {}
+    },
+
+    /* Half Tile Bumpable */
+    27: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: false,
+        HALF: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Small bump */
+                /* Big bump */
+                case 0x10:
+                case 0x11:
+                case 0x04: {
+                    if (game.pid === pid) { game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    break;
+                }
+            }
+        }
+    },
+
+    /* Half Tile Semisolid */
+    29: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: false,
+        HALF: true,
+        PLATFORM: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {}
+    },
+    /* Lock Camera */
+    30: {
+        COLLIDE: false,
+        HIDDEN: false,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            if (game.pid === pid) {
+                switch (type) {
+                    /* Touch */
+                    case 0x00: {
+                        game.pauseCamera = true;
+                    }
+                }
+            }
+        }
+    },
+    /* Unlock Camera */
+    31: {
+        COLLIDE: false,
+        HIDDEN: false,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            if (game.pid === pid) {
+                switch (type) {
+                    /* Touch */
+                    case 0x00: {
+                        game.pauseCamera = false;
+                    }
+                }
+            }
+        }
+    },
+    /* Lock Y */
+    32: {
+        COLLIDE: false,
+        HIDDEN: false,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            if (game.pid === pid) {
+                switch (type) {
+                    /* Touch */
+                    case 0x00: {
+                        game.pauseCameraY = true;
+                    }
+                }
+            }
+        }
+    },
+    /* Unlock Y */
+    33: {
+        COLLIDE: false,
+        HIDDEN: false,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            if (game.pid === pid) {
+                switch (type) {
+                    /* Touch */
+                    case 0x00: {
+                        game.pauseCameraY = false;
+                    }
+                }
+            }
+        }
+    },
+    /* Player Barrier */
+    36: {
+        COLLIDE: false,
+        PLAYER: true,
+        HIDDEN: false,
+        ASYNC: false,
+        TRIGGER: function() {}
+    },
+    /* Object(Enemy) Barrier */
+    37: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: false,
+        ENEMY: true,
+        TRIGGER: function() {}
+    },
+    /* 38: {
+    NAME: "SOLID SLOPE",
+    COLLIDE: true,
+    HIDDEN: true,
+    ASYNC: false,
+    SLOPE: true,
+    TRIGGER: function(game, pid, td, level, zone, x, y, type) {}
+    }, */
+    /* Vine Block */
+    0x18: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Small bump */
+                /* Big bump */
+                /* Shell */
+                case 0x10:
+                case 0x11:
+                case 0x04: {
+                    if (game.pid === pid) { game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                    var rep = game.world.getZone(level, zone).tileDataType === 1 ? TDANY_USED_BLOCK : TD32_USED_BLOCK; // Replacement td32 data for tile.
+                    var vin = td32.data(10813796, td.data); // Vine td32 data for tile.
+                    game.world.getZone(level, zone).replace(x, y, rep);
+                    game.world.getZone(level, zone).grow(x, y + 1, vin);
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    game.world.getZone(level, zone).play(x, y, "vine.mp3", 1., 0.04);
+                    break;
+                }
+            }
+        }
+    },
+    /* Item Block Invisible */
+    0x15: {
+        COLLIDE: true,
+        HIDDEN: true,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            if ((app.net.gameMode === 2) && game.pid !== pid) return;
+            switch (type) {
+                /* Small bump */
+                /* Big bump */
+                case 0x10:
+                case 0x11: {
+                    if (game.pid === pid) { game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type)); }
+                    var rep = game.world.getZone(level, zone).tileDataType === 1 ? TDANY_USED_BLOCK : TD32_USED_BLOCK; // Replacement td32 data for tile.
+                    game.world.getZone(level, zone).replace(x, y, rep);
+                    game.createObject(td.data, level, zone, vec2.make(x, y), [shor2.encode(x, y)]);
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    game.world.getZone(level, zone).play(x, y, "item.mp3", 1., 0.04);
+                    break;
+                }
+            }
+        }
+    },
+    /* Coin Block INVISIBLE */
+    0x16: {
+        COLLIDE: true,
+        HIDDEN: true,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Small bump */
+                /* Big bump */
+                case 0x10:
+                case 0x11: {
+                    if (game.pid === pid) {
+                        game.out.push(NET030.encode(level, zone, shor2.encode(x, y), type));
+                        game.addCoin(false, true);
+                    }
+                    var rep = game.world.getZone(level, zone).tileDataType === 1 ? TDANY_USED_BLOCK : TD32_USED_BLOCK; // Replacement td32 data for tile.
+                    game.world.getZone(level, zone).replace(x, y, rep);
+                    game.world.getZone(level, zone).coin(x, y + 1);
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    break;
+                }
+            }
+        }
+    },
+    /* Warp Tile */
+    0x51: {
+        COLLIDE: false,
+        HIDDEN: false,
+        ASYNC: true,
+        WARP: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type, oid) {
+            switch (type) {
+                /* Touch */
+                case 0x00: {
+                    if (game.pid === pid) {
+                        game.getPlayer().warp(td.data);
+                    }
+
+                    break;
+                }
+
+                /* Warping Object */
+                case 0x69: {
+                    let warper = game.getObject(level, zone, oid);
+                    if(!warper) { return; }
+                    warper.warp(td.data);
+                    break;
+                }
+            }
+        }
+    },
+    /* Warp Pipe Slow */
+    0x52: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Down */
+                case 0x01: {
+                    if (game.pid === pid) {
+                        var ply = game.getPlayer();
+                        var l = game.world.getZone(level, zone).getTile(vec2.make(x - 1, y));
+                        var r = game.world.getZone(level, zone).getTile(vec2.make(x + 1, y));
+
+                        var cx;
+                        if (l.definition === this) { cx = x; }
+                        else if (r.definition === this) { cx = x + 1; }
+                        else { return; }
+
+                        if (Math.abs((ply.pos.x + (ply.dim.x * .5)) - cx) <= 0.45) { ply.pipe(2, td.data, 50); }
+                    }
+                }
+            }
+        }
+    },
+    /* Warp Pipe Right Slow */
+    0x53: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Push */
+                case 0x02: {
+                    if (game.pid === pid) {
+                        game.getPlayer().pipe(4, td.data, 50);
+                    }
+                }
+            }
+        }
+    },
+    /* Warp Pipe Fast */
+    0x54: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Down */
+                case 0x01: {
+                    if (game.pid === pid) {
+                        var ply = game.getPlayer();
+                        var l = game.world.getZone(level, zone).getTile(vec2.make(x - 1, y));
+                        var r = game.world.getZone(level, zone).getTile(vec2.make(x + 1, y));
+
+                        var cx;
+                        if (l.definition === this) { cx = x; }
+                        else if (r.definition === this) { cx = x + 1; }
+                        else { return; }
+
+                        if (Math.abs((ply.pos.x + (ply.dim.x * .5)) - cx) <= 0.45) { ply.pipe(2, td.data, 0); }
+                    }
+                }
+            }
+        }
+    },
+    /* Warp Pipe Right Fast */
+    0x55: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Push */
+                case 0x02: {
+                    if (game.pid === pid) {
+                        game.getPlayer().pipe(4, td.data, 0);
+                    }
+                }
+            }
+        }
+    },
+    /* Level End Warp */
+    0x56: {
+        COLLIDE: false,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Touch */
+                case 0x00: {
+                    if (game.pid === pid) {
+                        game.levelWarp(td.data);
+                    }
+                }
+            }
+        }
+    },
+    /* Flagpole Level End Warp */
+    0xA1: {
+        COLLIDE: false,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Touch */
+                case 0x00: {
+                    if (game.pid === pid) {
+                        var ply = game.getPlayer();
+
+                        if (ply.autoTarget) game.levelWarp(td.data);
+                    }
+                }
+            }
+        }
+    },
+    /* Warp Pipe Single Slow */
+    87: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Down */
+                case 0x01: {
+                    if (game.pid === pid) {
+                        var ply = game.getPlayer();
+
+                        ply.pipe(2, td.data, 50);
+                    }
+                }
+            }
+        }
+    },
+    /* Warp Pipe Single Fast */
+    88: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Down */
+                case 0x01: {
+                    if (game.pid === pid) {
+                        var ply = game.getPlayer();
+                        //var l = game.world.getZone(level, zone).getTile(vec2.make(x - 1, y));
+                        //var r = game.world.getZone(level, zone).getTile(vec2.make(x + 1, y));
+
+                        if (parseInt(ply.pos.x) === x || ply.pos.x + 0.1 === x || ply.pos.x - 0.1 === x) ply.pipe(2, td.data, 0);
+                    }
+                }
+            }
+        }
+    },
+    /* Warp Pipe Left Slow */
+    89: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Push */
+                case 0x02: {
+                    if (game.pid === pid) {
+                        game.getPlayer().pipe(3, td.data, 50);
+                    }
+                }
+            }
+        }
+    },
+    /* Warp Pipe Left Fast */
+    90: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Push */
+                case 0x02: {
+                    if (game.pid === pid) {
+                        game.getPlayer().pipe(3, td.data, 0);
+                    }
+                }
+            }
+        }
+    },
+    /* Warp Pipe Up Slow */
+    91: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Small+Big Bump */
+                case 0x10:
+                case 0x11: {
+                    if (game.pid === pid) {
+                        var ply = game.getPlayer();
+                        var l = game.world.getZone(level, zone).getTile(vec2.make(x - 1, y));
+                        var r = game.world.getZone(level, zone).getTile(vec2.make(x + 1, y));
+
+                        var cx;
+                        if (l.definition === this) { cx = x; }
+                        else if (r.definition === this) { cx = x + 1; }
+                        else { return; }
+
+                        if (Math.abs((ply.pos.x + (ply.dim.x * .5)) - cx) <= 0.45 && ply.btnU) { ply.pipe(1, td.data, 50); }
+                    }
+
+                    break;
+                }
+            }
+        }
+    },
+    /* Warp Pipe Up Fast */
+    92: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Small+Big Bump */
+                case 0x10:
+                case 0x11: {
+                    if (game.pid === pid) {
+                        var ply = game.getPlayer();
+                        var l = game.world.getZone(level, zone).getTile(vec2.make(x - 1, y));
+                        var r = game.world.getZone(level, zone).getTile(vec2.make(x + 1, y));
+
+                        var cx;
+                        if (l.definition === this) { cx = x; }
+                        else if (r.definition === this) { cx = x + 1; }
+                        else { return; }
+
+                        if (Math.abs((ply.pos.x + (ply.dim.x * .5)) - cx) <= 0.45 && ply.btnU) { ply.pipe(1, td.data, 0); }
+                    }
+
+                    break;
+                }
+            }
+        }
+    },
+    /* Flagpole */
+    0xA0: {
+        COLLIDE: false,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Touch */
+                case 0x00: {
+                    if (game.pid === pid) {
+                        var ply = game.getPlayer();
+                        if (ply.pos.x >= x) { ply.pole(vec2.make(x, y)); }
+                    }
+                }
+            }
+        }
+    },
+    /* Vine */
+    0xA5: {
+        COLLIDE: false,
+        HIDDEN: false,
+        ASYNC: true,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Touch */
+                case 0x00: {
+                    if (game.pid === pid) {
+                        var ply = game.getPlayer();
+                        if (ply.pos.x >= x && ply.pos.x <= x + 1.) { ply.vine(vec2.make(x, y), td.data); }
+                    }
+                }
+            }
+        }
+    },
+    /* Vote Block */
+    0xF0: {
+        COLLIDE: true,
+        HIDDEN: false,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Small bump */
+                /* Big bump */
+                case 0x10:
+                case 0x11: {
+                    if (game.pid === pid) { game.send({ type: "g50" }); }
+                    var rep = game.world.getZone(level, zone).tileDataType === 1 ? TDANY_USED_BLOCK : TD32_USED_BLOCK; // Replacement td32 data for tile.
+                    game.world.getZone(level, zone).replace(x, y, rep);
+                    game.createObject(CheckObject.ID, level, zone, vec2.make(x, y + 1), [shor2.encode(x, y)]);
+                    td32.GEN_FUNC.BUMP(game, pid, td, level, zone, x, y, type);
+                    break;
+                }
+            }
+        }
+    },
+    /* Sound Tile */
+    0xF1: {
+        COLLIDE: false,
+        HIDDEN: false,
+        ASYNC: false,
+        TRIGGER: function (game, pid, td, level, zone, x, y, type) {
+            switch (type) {
+                /* Touch */
+                case 0x00: {
+                    if (game.pid === pid) {
+                        game.world.getZone(level, zone).play(x, y, td.data, 1., 0.04);
+                    }
+                }
+            }
+        }
+    }
+};
+
+const TD32_USED_BLOCK = 98331;
+const TDANY_USED_BLOCK = [ 27, 0, 1, 1, 0 ];
+
+var NETX = {}; // Main
+/* ======================================================================================== */
+
+NETX.decode = function (/* Uint8Array */ data) {
+    var de = [];
+    var i = 0;
+    while (i < data.length) {
+        var desig = data.slice(i++, i)[0];
+        switch (desig) {
+            case 0x02: { de.push(NET001.decode(data.slice(i, i += NET001.BYTES - 1))); break; }
+            case 0x03: { de.push(NET003.decode(data.slice(i, i += NET003.BYTES - 1))); break; }
+            case 0x10: { de.push(NET010.decode(data.slice(i, i += NET010.BYTES - 1))); break; }
+            case 0x11: { de.push(NET011.decode(data.slice(i, i += NET011.BYTES - 1))); break; }
+            case 0x12: { de.push(NET012.decode(data.slice(i, i += NET012.BYTES - 1))); break; }
+            case 0x13: { de.push(NET013.decode(data.slice(i, i += NET013.BYTES - 1))); break; }
+            case 0x17: { de.push(NET017.decode(data.slice(i, i += NET017.BYTES - 1))); break; }
+            case 0x18: { de.push(NET018.decode(data.slice(i, i += NET018.BYTES - 1))); break; }
+            case 0x20: { de.push(NET020.decode(data.slice(i, i += NET020.BYTES - 1))); break; }
+            case 0x21: { de.push(NET021.decode(data.slice(i, i += NET021.BYTES - 1))); break; }
+            case 0x22: { de.push(NET022.decode(data.slice(i, i += NET022.BYTES - 1))); break; }
+            case 0x23: { de.push(NET023.decode(data.slice(i, i += NET023.BYTES - 1))); break; }
+            case 0x30: { de.push(NET030.decode(data.slice(i, i += NET030.BYTES - 1))); break; }
+            default: { if (app) { app.menu.warn.show("Error decoding binary data! desig=" + desig); } return de; }
+        }
+    }
+    return de;
+};
+
+var NET001 = {}; // ASSIGN_PID [0x01]
+/* ======================================================================================== */
+NET001.DESIGNATION = 0x02;
+NET001.BYTES = 8;
+
+/* Server->Client */
+NET001.decode = function (/* NET001_SERV */ a) {
+    return {
+        designation: NET001.DESIGNATION,
+        pid: a.pid,
+        skin: a.skin,
+        isDev: a.isDev,
+        isMod: a.isMod
+    };
+};
+
+var NET003 = {}; // ADD_LIFE [0x03]
+/* ======================================================================================== */
+NET003.DESIGNATION = 0x03;
+NET003.BYTES = 3;
+
+/* Server->Client */
+NET003.decode = function (/* NET001_SERV */ a) {
+    return {
+        designation: NET003.DESIGNATION
+    };
+};
+
+var NET010 = {}; // CREATE_PLAYER_OBJECT [0x10]
+/* ======================================================================================== */
+NET010.DESIGNATION = 0x10;
+NET010.BYTES = 14;
+
+/* Client->Server */
+NET010.encode = function (/* byte */ levelID, /* byte */ zoneID, /* shor2 */ pos) {
+    return {"type": NET010.DESIGNATION, "levelID": levelID, "zoneID": zoneID, "pos": pos};
+};
+
+/* Server->>>Client */
+NET010.decode = function (/* NET010_SERV */ a) {
+    return {
+        designation: NET010.DESIGNATION,
+        pid: a.pid,
+        level: a.level,
+        zone: a.zone,
+        pos: a.pos,
+        skin: a.skin,
+        isDev: a.isDev,
+        isMod: a.isMod
+    };
+};
+
+var NET011 = {}; // KILL_PLAYER_OBJECT [0x11]
+/* ======================================================================================== */
+NET011.DESIGNATION = 0x11;
+NET011.BYTES = 3;
+
+/* Client->Server */
+NET011.encode = function () {
+    return {"type": NET011.DESIGNATION};
+};
+
+/* Server->>>Client */
+NET011.decode = function (/* NET011_SERV */ a) {
+    return {
+        designation: NET011.DESIGNATION, pid: a.pid
+    };
+};
+
+var NET012 = {}; // UPDATE_PLAYER_OBJECT [0x12]
+/* ======================================================================================== */
+NET012.DESIGNATION = 0x12;
+NET012.BYTES = 15;
+
+/* Client->Server */
+NET012.encode = function (/* byte */ levelID, /* byte */ zoneID, /* vec2 */ pos, /* byte */ spriteID, /* byte */ reverse) {
+    return {"type": NET012.DESIGNATION, "levelID": levelID, "zoneID": zoneID, "pos": pos, "spriteID": spriteID, "reverse": reverse};
+};
+
+/* Server->>Client */
+NET012.decode = function (/* NET012_SERV */ a) {
+    return {
+        designation: NET012.DESIGNATION,
+        pid: a.pid,
+        level: a.level,
+        zone: a.zone,
+        pos: a.pos,
+        sprite: a.sprite,
+        reverse: a.reverse,
+        spectator: y === -1 ? true : false
+    };
+};
+
+var NET013 = {}; // PLAYER_OBJECT_EVENT [0x13]
+/* ======================================================================================== */
+NET013.DESIGNATION = 0x13;
+NET013.BYTES = 4;
+
+/* Client->Server */
+NET013.encode = function (/* byte */ type) {
+    return {"type": NET013.DESIGNATION, "event": type};
+};
+
+/* Server->>>Client */
+NET013.decode = function (/* NET013_SERV */ a) {
+    return {
+        designation: NET013.DESIGNATION,
+        pid: a.pid,
+        type: a.event
+    };
+};
+
+var NET015 = {}; // PLAYER_INVALID_MOVE [0x15]
+/* ======================================================================================== */
+NET015.DESIGNATION = 0x15;
+NET015.BYTES = 3;
+
+/* Client->Server */
+NET015.encode = function () {
+    return {"type": NET015.DESIGNATION};
+};
+
+var NET017 = {}; // PLAYER_KILL_EVENT [0x17]
+/* ======================================================================================== */
+NET017.DESIGNATION = 0x17;
+NET017.BYTES = 5;
+
+/* Client->Server */
+NET017.encode = function (/* short */ killer, type) {
+    return {"type": NET017.DESIGNATION, "killer": killer, "event": type};
+};
+
+/* Server->Client */
+NET017.decode = function (/* NET017_SERV */ a) {
+    return {
+        designation: NET017.DESIGNATION,
+        pid: a.pid,
+        killer: a.killer,
+        type: a.event
+    };
+};
+
+var NET018 = {}; // PLAYER_RESULT_REQUEST [0x18]
+/* ======================================================================================== */
+NET018.DESIGNATION = 0x18;
+NET018.BYTES = 5;
+
+/* Client->Server */
+NET018.encode = function () {
+    return {"type": NET018.DESIGNATION};
+};
+
+/* Server->>>Client */
+NET018.decode = function (/* NET011_SERV */ a) {
+    return {
+        designation: NET018.DESIGNATION, pid: (a[1] & 0x00FF) | ((a[0] << 8) & 0xFF00), result: a[2], extra: a[3]
+    };
+};
+
+var NET019 = {}; // PLAYER_SNITCH [0x19]
+/* ======================================================================================== */
+NET019.DESIGNATION = 0x19;
+NET019.BYTES = 3;
+
+/* Client->Server */
+NET019.encode = function () {
+    return {"type": NET019.DESIGNATION};
+};
+
+var NET020 = {}; // OBJECT_EVENT_TRIGGER [0x20]
+/* ======================================================================================== */
+NET020.DESIGNATION = 0x20;
+NET020.BYTES = 10;
+
+/* Client->Server */
+NET020.encode = function (/* byte */ levelID, /* byte */ zoneID, /* int */ oid, /* byte */ type) {
+    return {"type": NET020.DESIGNATION, "levelID": levelID, "zoneID": zoneID, "oid": oid, "event": type};
+};
+
+/* Server->>>Client */
+NET020.decode = function (/* NET020_SERV */ a) {
+    return {
+        designation: NET020.DESIGNATION,
+        pid: a.pid,
+        level: a.level,
+        zone: a.zone,
+        oid: a.oid,
+        type: a.event
+    };
+};
+
+var NET021 = {}; // GET_COIN [0x21]
+/* ======================================================================================== */
+NET021.DESIGNATION = 0x21;
+NET021.BYTES = 2;
+
+/* Server->>>Client */
+NET021.decode = function (/* NET021_SERV */ a) {
+    return {
+        designation: NET021.DESIGNATION,
+        type: a.type
+    };
+};
+
+var NET022 = {}; // GET_COIN_LB [0x22]
+/* ======================================================================================== */
+NET022.DESIGNATION = 0x22;
+NET022.BYTES = 5;
+
+/* Server->>>Client */
+NET022.decode = function (/* NET022_SERV */ a) {
+    return {
+        designation: NET022.DESIGNATION,
+        coins: a.coins
+    };
+};
+
+var NET023 = {}; // GET_FLAG_1UP //blahblahblah
+/* ======================================================================================== */
+NET023.DESIGNATION = 0x23;
+NET023.BYTES = 5;
+
+NET023.decode = function (/* NET023_SERVER */ a) {
+    return {
+        designation: NET023.DESIGNATION
+    };
+};
+
+var NET030 = {}; // TILE_EVENT_TRIGGER [0x30]
+/* ======================================================================================== */
+NET030.DESIGNATION = 0x30;
+NET030.BYTES = 10;
+
+/* Client->Server */
+NET030.encode = function (/* byte */ levelID, /* byte */ zoneID, /* shor2 */ pos, /* byte */ type) {
+    return {"type": NET030.DESIGNATION, "levelID": levelID, "zoneID": zoneID, "pos": pos, "event": type};
+};
+
+/* Server->/>Client */
+NET030.decode = function (/* NET030_SERV */ a) {
+    return {
+        designation: NET030.DESIGNATION,
+        pid: a.pid,
+        level: a.level,
+        zone: a.zone,
+        pos: a.pos,
+        type: a.type
+    };
+};
+
+"use strict";
+var squar = {};
+
+squar.intersection = function (astart, adim, bstart, bdim) {
+    return bstart.x < astart.x + adim.x && bstart.x + bdim.x > astart.x && bstart.y < astart.y + adim.y && bstart.y + bdim.y > astart.y;
+};
+squar.inside = function (_0x15c2a5, _0x1957cd, _0x4042e7) {
+    return _0x1957cd.x < _0x15c2a5.x && _0x1957cd.x + _0x4042e7.x > _0x15c2a5.x && _0x1957cd.y < _0x15c2a5.y && _0x1957cd.y + _0x4042e7.y > _0x15c2a5.y;
+};
+"use strict";
+
+function Menu() {
+    this.body = document.getElementsByTagName("BODY")[0];
+    window.history.pushState({
+        'html': "index.html",
+        'pageTitle': "Mario Royale"
+    }, '', '#');
+    var screens = [{
+        'id': "warn",
+        'obj': new WarnScreen()
+    }, {
+        'id': "error",
+        'obj': new ErrorScreen()
+    }, {
+        'id': "load",
+        'obj': new LoadScreen()
+    }, {
+        'id': "disclaim",
+        'obj': new DisclaimScreen()
+    }, {
+        'id': "mobileDisclaim",
+        'obj': new MobileDisclaimScreen()
+    }, {
+        'id': "main",
+        'obj': new MainScreen()
+    }, {
+        'id': "mainAsMember",
+        'obj': new MainAsMemberScreen()
+    }, {
+        'id': "profile",
+        'obj': new ProfileScreen()
+    }, {
+        'id': "shop",
+        'obj': new ShopScreen()
+    }, {
+        'id': "achievements",
+        'obj': new AchievementsScreen()
+    }, {
+        'id': "pwdChange",
+        'obj': new PwdChangeScreen()
+    }, {
+        'id': "name",
+        'obj': new NameScreen()
+    }, {
+        'id': "login",
+        'obj': new LoginScreen()
+    }, {
+        'id': "register",
+        'obj': new RegisterScreen()
+    }, {
+        'id': "game",
+        'obj': new GameScreen()
+    }];
+    this.menus = [];
+    for (var i = 0x0; i < screens.length; i++) this.menus[i] = screens[i].obj, this[screens[i].id] = screens[i].obj;
+    this.lastNav = '';
+    var menu = this;
+    window.onpopstate = function (screens) {
+        if (menu[menu.lastNav] && menu[menu.lastNav].onBack) menu.onBack();
+        else screens.state && "Mario Royale" !== screens.state.pageTitle ? (
+            document.getElementById("content").innerHTML = screens.state.html,
+            document.title = screens.state.pageTitle)
+            : screens.state && "Mario Royale" === screens.state.pageTitle && window.history.back();
+    };
+    this.hideAll();
+    this.background('c');
+    this.body.style.display = "block";
+}
+Menu.prototype.hideAll = function () {
+    for (var i = 0x1; i < this.menus.length; i++) this.menus[i].hide();
+};
+Menu.prototype.partHide = function () {
+    for (var i = 0x1; i < this.menus.length; i++) this.menus[i].hide();
+    this.linkElement = document.getElementById("link");
+    this.linkElement.style.display = "";
+}
+Menu.prototype.background = function (bg) {
+    if (bg !== this.bid) {
+        switch (bg) {
+            case 'b':
+                bg = "background-b";
+                break;
+            case 'c':
+                bg = "background-c";
+                break;
+            default:
+                bg = "background-a";
+        }
+        this.body.classList.remove("background-a");
+        this.body.classList.remove("background-b");
+        this.body.classList.remove("background-c");
+        this.body.classList.add(bg);
+    }
+};
+Menu.prototype.navigation = function (lastNav, title) {
+    this.lastNav = lastNav;
+    window.history.replaceState({
+        'html': "index.html",
+        'pageTitle': "Mario Royale"
+    }, title, '#' + title);
+};
+Menu.prototype.onBack = function () {
+    window.history.pushState({
+        'html': "index.html",
+        'pageTitle': "Mario Royale"
+    }, '', '#');
+    this[this.lastNav].onBack();
+};
+"use strict";
+
+function WarnScreen() {
+    this.element = document.getElementById("warn");
+    this.hide();
+    this.timeout = undefined;
+}
+WarnScreen.prototype.show = function(message) {
+    this.element.innerHTML = "<img src='" + ASSETS_URL + "img/home/warn.png' class='warn-ico'/> " + message;
+    console.warn("##WARN## " + message);
+  
+    if(this.timeout) { clearTimeout(this.timeout); }
+    var tmp = this.element;
+    this.timeout = setTimeout(function() { tmp.style.display = "none"; }, 5000);
+    this.element.style.display = "block";
+  };
+  
+WarnScreen.prototype.hide = function () {
+    this.element.style.display = "none";
+};
+"use strict";
+
+function ErrorScreen() {
+    this.element = document.getElementById("error");
+    this.error = document.getElementById("error-message");
+}
+ErrorScreen.prototype.show = function (mainError, consoleError, consoleTrace) {
+    app.net.close();
+    app.menu.hideAll();
+    app.menu.navigation("error", "error");
+    app.menu.background('b');
+    this.error.innerHTML = mainError;
+    mainError && console.error("##ERROR## " + mainError);
+    consoleError && console.warn("##ERROR## " + consoleError);
+    consoleTrace && console.warn("##TRACE## " + consoleTrace);
+    this.element.style.display = "block";
+};
+ErrorScreen.prototype.hide = function () {
+    this.element.style.display = "none";
+};
+"use strict";
+
+function LoadScreen() {
+    this.element = document.getElementById("load");
+    this.message = document.getElementById("load-message");
+}
+LoadScreen.prototype.show = function (message) {
+    app.menu.hideAll();
+    app.menu.background('a');
+    this.message.style.display = "none";
+    if(message) {
+        this.message.innerText = message;
+        this.message.style.display = "";
+    }
+    this.element.style.display = "block";
+};
+LoadScreen.prototype.setMessage = function (message) {
+    this.message.innerText = message;
+    this.message.style.display = "";
+}
+LoadScreen.prototype.hide = function () {
+    this.element.style.display = "none";
+};
+"use strict";
+
+function DisclaimScreen() {
+    this.element = document.getElementById("disclaim");
+    this.linkElement = document.getElementById("link");
+}
+DisclaimScreen.prototype.show = function (_0x2243c7) {
+    app.menu.hideAll();
+    app.menu.background('c');
+    //this.linkElement.style.display = "block";
+    this.element.style.display = "block";
+};
+DisclaimScreen.prototype.hide = function () {
+    this.linkElement.style.display = "";
+    this.element.style.display = "none";
+};
+"use strict";
+
+function MobileDisclaimScreen() {
+    this.element = document.getElementById("disclaim-mobile");
+    this.linkElement = document.getElementById("link");
+}
+MobileDisclaimScreen.prototype.show = function (_0x2243c7) {
+    app.menu.hideAll();
+    app.menu.background('c');
+    this.linkElement.style.display = "block";
+    this.element.style.display = "block";
+};
+MobileDisclaimScreen.prototype.hide = function () {
+    this.linkElement.style.display = "";
+    this.element.style.display = "none";
+};
+"use strict";
+
+function MainScreen() {
+    this.element = document.getElementById("main");
+    this.titleElement = document.getElementById("main-title");
+    this.linkElement = document.getElementById("link");
+    this.winElement = document.getElementById("win");
+    this.leaderElement = document.getElementById("link-leaderboard");
+    this.launchbtn = document.getElementById("main-launch");
+    this.loginbtn = document.getElementById("main-login");
+    this.registerbtn = document.getElementById("main-register");
+    this.onlineNum = document.getElementById("main-number");
+    this.onlineMenu = document.getElementById("main-number-menu");
+    this.onlineGame = document.getElementById("main-number-game");
+    this.numberFull = document.getElementById("main-numberFull");
+    this.maintenance = document.getElementById("main-maintenance");
+    this.padLoop = undefined;
+    var mainscreen = this;
+    this.launchbtn.onclick = function () {
+        document.getElementById('leaderboard').style.display = 'none';
+        mainscreen.launch();
+    };
+    this.loginbtn.onclick = function () {
+        mainscreen.showLogin();
+    };
+    this.registerbtn.onclick = function () {
+        mainscreen.showRegister();
+    };
+}
+MainScreen.prototype.launch = function () {
+    app.menu.name.show();
+};
+
+MainScreen.prototype.showLogin = function () {
+    app.menu.login.show();
+};
+
+MainScreen.prototype.showRegister = function () {
+    app.menu.register.show();
+    app.requestCaptcha();
+};
+
+MainScreen.prototype.showControls = function () {
+    app.menu.control.show();
+};
+
+function genStartPad(target) {
+    var buttonA = isNaN(parseInt(Cookies.get("g_a"))) ? 0x0 : parseInt(Cookies.get("g_a"));
+    var buttonAPressed = false;
+    var startPadLoop = function () {
+        var gamepad;
+        navigator.getGamepads && (gamepad = navigator.getGamepads()[0x0]);
+        gamepad && !gamepad.buttons[buttonA].pressed && buttonAPressed && target.launch();
+        gamepad && (buttonAPressed = gamepad.buttons[buttonA].pressed);
+        target.padLoop = setTimeout(startPadLoop, 0x21);
+    };
+    startPadLoop();
+}
+MainScreen.prototype.startPad = function () {
+    genStartPad(this);
+};
+function setUpdatePlayerNumber(target) {
+    target.updateStatus = function (firstTry) {
+        $.ajax({
+            'url': "https://marioroyale.com:9001/api/v1/status",
+            'type': "GET",
+            'timeout': 0xbb8,
+            'success': function (data) {
+                if (data.result) {
+                    firstTry && target.menu.error.show(data.result);
+                } else {
+                    if (data.maintenance) {
+                        target.numberFull.style.display = "none";
+                        target.maintenance.style.display = "";
+                    } else {
+                        target.onlineNum.innerHTML = data.active.menu + data.active.game;
+                        target.onlineMenu.innerText = data.active.menu;
+                        target.onlineGame.innerText = data.active.game;
+                        target.maintenance.style.display = "none";
+                        target.numberFull.style.display = "";
+                    }
+                }
+            },
+            cache: false
+        });
+    };
+}
+MainScreen.prototype.show = function () {
+    app.menu.hideAll();
+    app.menu.navigation("main", "main");
+    app.menu.background('a');
+    this.updateStatsBar();
+    this.winElement.style.display = "block";
+    this.startPad();
+    this.linkElement.style.display = "block";
+    this.element.style.display = "block";
+    session = Cookies.get("session_legacy");
+    if (session != undefined) {
+        app.resumeSession(session);
+    } else {
+        if(!app.net.connected()) {
+            app.menu.load.show("Connecting to game server...");
+            app.net.connect([Network.CONNECTTYPE.MENU]);
+        }
+    }
+    setUpdatePlayerNumber(this);
+    this.updateStatus(true);
+    app.statusUpdater = setInterval(this.updateStatus, 1000);
+};
+MainScreen.prototype.hide = function () {
+    this.padLoop && clearTimeout(this.padLoop);
+    this.linkElement.style.display = "";
+    this.element.style.display = "none";
+    if (app && app.statusUpdater) {
+        clearInterval(app.statusUpdater);
+        app.statusUpdater = null;
+    }
+};
+MainScreen.prototype.updateStatsBar = function () {
+    this.winElement.innerText = "Login to use skins, badges, and more!";
+};
+"use strict";
+
+function MainAsMemberScreen() {
+    this.element = document.getElementById("mainAsMember");
+    this.titleElement = document.getElementById("mainAsMember-title");
+    this.linkElement = document.getElementById("link");
+    this.charMusicToggle = document.getElementById("mainAsMember-char-music-toggle");
+    this.launchbtn = document.getElementById("mainAsMember-launch");
+    this.profilebtn = document.getElementById("mainAsMember-profile");
+    this.pwdbtn = document.getElementById("mainAsMember-pwd");
+    this.logoutbtn = document.getElementById("mainAsMember-logout");
+    this.privatebtn = document.getElementById("mainAsMember-private-toggle");
+    this.gmbtn = document.getElementById("mainAsMember-gm-change");
+    this.onlineNum = document.getElementById("mainAsMember-number");
+    this.numberFull = document.getElementById("mainAsMember-numberFull");
+    this.onlineMenu = document.getElementById("mainAsMember-online-menu");
+    this.onlineGame = document.getElementById("mainAsMember-online-game");
+    this.maintenance = document.getElementById("mainAsMember-maintenance");
+    this.shopbtn = document.getElementById("mainAsMember-shop");
+    this.achievementbtn = document.getElementById("mainAsMember-achievements");
+    this.isPrivate = false;
+    this.gameMode = 0;
+    var that = this;
+    this.launchbtn.onclick = function () {
+        document.getElementById('leaderboard').style.display = 'none';
+        that.launch();
+    };
+    this.profilebtn.onclick = function () {
+        that.showProfile();
+    };
+    this.shopbtn.onclick = function () {
+        app.net.send({"type": "lgs"})
+    };
+    this.achievementbtn.onclick = function () {
+        that.showAchievements();
+    };
+    this.pwdbtn.onclick = function () {
+        that.showPwdChange();
+    };
+    this.logoutbtn.onclick = function () {
+        that.logout();
+        location.reload();
+    };
+    this.privatebtn.onclick = function () {
+        that.isPrivate = !that.isPrivate;
+        that.updPrivatebtn();
+        Cookies.set("mpriv", that.isPrivate, {
+            'expires': 0x1e
+        });
+    };
+    this.charMusicToggle.onclick = function () {
+        app.charMusic = !app.charMusic;
+        that.updMusicbtn();
+        Cookies.set("char_music", app.charMusic ? "0" : "1", {
+            'expires': 0x1e
+        });
+    }
+    this.gmbtn.onclick = function () {
+        that.gameMode = (that.gameMode + 1) % GAMEMODES.length;
+        that.updGameModebtn();
+        Cookies.set("gamemode", that.gameMode, {
+            'expires': 0x1e
+        });
+    }
+}
+
+MainAsMemberScreen.prototype.show = function (data) {
+    app.menu.partHide();
+    app.menu.background('a');
+    app.menu.navigation("main", "main");
+    if (data === undefined) {
+        this.element.style.display = "block";
+        return;
+    }
+    if (data.session != undefined) {
+        Cookies.set("session_legacy", data.session, {
+            'expires': 0x1e
+        });
+    }
+    var savedPriv = Cookies.get("mpriv");
+    var savedGm = Cookies.get("gamemode");
+    this.coins = data.coins || 0;
+    this.kills = data.kills || 0;
+    this.wins = data.wins || 0;
+    this.deaths = data.deaths || 0;
+    this.nickname = data.nickname;
+    this.squad = data.squad;
+    this.skin = data.skin;
+    this.skins = data.skins;
+    this.badges = data.badges;
+    this.badgesUnlocked = data.badgesUnlocked;
+    document.getElementById("profile-statSkins").innerText = (data.skins.length - 2) || 0;
+    document.getElementById("profile-statBadges").innerText = (data.badgesUnlocked.length - 1) || 0;
+    document.getElementById("profile-statLBCoins").innerText = data.coinsLB || 0;
+    document.getElementById("profile-statSMB1").innerText = data.levelStats["smb1Wins"] || 0;
+    document.getElementById("profile-statSMB3").innerText = data.levelStats["smb3Wins"] || 0;
+    document.getElementById("profile-statMarioland").innerText = data.levelStats["mariolandWins"] || 0;
+    document.getElementById("profile-statMegaman").innerText = data.levelStats["megamanWins"] || 0;
+    document.getElementById("profile-statHell").innerText = data.levelStats["hellWins"] || 0;
+    this.isPrivate = savedPriv ? (savedPriv == "true") : false;
+    this.gameMode = savedGm ? parseInt(savedGm) : 0;
+    this.updPrivatebtn();
+    this.updMusicbtn();
+    this.updGameModebtn();
+    this.linkElement = document.getElementById("link");
+    this.linkElement.style.display = "";
+    this.element.style.display = "block";
+    if (app.goToLobby || app.inviteCode !== null) {
+        this.launch();
+    } else {
+        setUpdatePlayerNumber(this);
+        this.updateStatus(true);
+        app.statusUpdater = setInterval(this.updateStatus, 1000);
+    }
+    app.menu.main.winElement.innerHTML = "<div><span class='stat-icons stat-wins'></span> x" + this.wins + " <span class='stat-icons stat-deaths'></span> x" + this.deaths + " <span class='stat-icons stat-kills'></span> x" + `<span id="stats-kills">${this.kills}</span>` + " <span class='stat-icons stat-coins'></span> x" + `<span id="stats-coins">${this.coins}</span></div`;
+};
+MainAsMemberScreen.prototype.hide = function () {
+    this.linkElement.style.display = "";
+    this.element.style.display = "none";
+    if (app && app.statusUpdater) {
+        clearInterval(app.statusUpdater);
+        app.statusUpdater = null;
+    }
+};
+MainAsMemberScreen.prototype.getCoins = function () {
+    return this.coins;
+};
+MainAsMemberScreen.prototype.getSkins = function () {
+    return this.skins;
+};
+
+MainAsMemberScreen.prototype.launch = function () {
+    var nickname = this.nickname;
+    var squad = app.inviteCode && app.inviteMode ? app.inviteCode : this.squad;
+    var priv = app.inviteCode && app.inviteMode ? true : this.isPrivate;
+    var skin = this.skin;
+    var gm = app.inviteCode && app.inviteMode ? parseInt(app.inviteMode) || 0 : this.gameMode;
+    var badges = this.badges;
+
+    app.join(nickname, squad, priv, skin, gm, badges);
+};
+
+MainAsMemberScreen.prototype.showProfile = function () {
+    document.getElementById("main-number").style.display = "";
+    app.menu.profile.show({ "nickname": this.nickname, "squad": this.squad, "skin": this.skin });
+};
+MainAsMemberScreen.prototype.showAchievements = function () {
+    app.menu.achievements.show();
+};
+MainAsMemberScreen.prototype.showPwdChange = function () {
+    app.menu.pwdChange.show();
+};
+MainAsMemberScreen.prototype.logout = function () {
+    app.logout();
+};
+MainAsMemberScreen.prototype.updPrivatebtn = function () {
+    if (!this.isPrivate) {
+        this.privatebtn.classList.add("disabled");
+        this.privatebtn.classList.remove("enabled");
+
+        this.launchbtn.style.color = "";
+        this.launchbtn.classList.remove("tooltip");
+        var elem = document.getElementById("mainAsMember-launch-tooltip");
+        if (elem)
+            this.launchbtn.removeChild(elem);
+    } else {
+        this.privatebtn.classList.add("enabled");
+        this.privatebtn.classList.remove("disabled");
+
+        this.launchbtn.style.color = "yellow";
+        this.launchbtn.classList.add("tooltip");
+
+        var elem = document.getElementById("mainAsMember-launch-tooltip");
+        if (!elem) {
+            elem = document.createElement("span");
+            elem.setAttribute("id", "mainAsMember-launch-tooltip");
+            elem.classList.add("tooltiptext");
+            elem.innerText = "You're joining a private room!"
+            this.launchbtn.appendChild(elem);
+        }
+    }
+};
+MainAsMemberScreen.prototype.updMusicbtn = function () {
+    if (!app.charMusic) {
+        this.charMusicToggle.classList.add("disabled");
+        this.charMusicToggle.classList.remove("enabled");
+    } else {
+        this.charMusicToggle.classList.add("enabled");
+        this.charMusicToggle.classList.remove("disabled");
+    }
+}
+MainAsMemberScreen.prototype.updGameModebtn = function () {
+    for (var i = 0; i < GAMEMODES.length; i++) {
+        this.gmbtn.classList.remove(GAMEMODES[i]);
+    }
+    this.gmbtn.classList.add(GAMEMODES[this.gameMode]);
+    const capitalize = function (s) { return s.charAt(0).toUpperCase() + s.slice(1) }
+    this.gmbtn.firstElementChild.innerHTML = "Change the current gamemode<br><font size='2'>Current gamemode is: <u>" + capitalize(GAMEMODES[this.gameMode]) + "</u></font>";
+}
+function genSelectSkin(screen, skinIdx) {
+    if (screen.skin !== undefined) {
+        document.getElementById(screen.skinButtonPrefix + "-" + screen.skin).style["border-color"] = "#3c3c3c";
+    }
+    screen.skin = skinIdx;
+    var elem = document.getElementById(screen.skinButtonPrefix + "-" + screen.skin);
+    if (elem) {
+        elem.style["border-color"] = "white";
+    } else {
+        var chld = document.getElementById("skin-select").children;
+        if (0 == chld.length) throw "no skins?!";
+        screen.skin = parseInt(chld[0].id.split("-").slice(-1)[0]);
+        document.getElementById(screen.skinButtonPrefix + "-" + screen.skin).style["border-color"] = "#3c3c3c";
+    }
+}
+
+function genAddSkinButton(screen, guest) {
+    for (var i = 0; i < SKINCOUNT; i++) {
+        var elem = document.createElement("div");
+        elem.setAttribute("class", "skin-select-button");
+        elem.setAttribute("id", screen.skinButtonPrefix + "-" + i);
+        elem.style["background-image"] = `url('${ASSETS_SKIN_URL + i + ".png"}')`;
+        elem.addEventListener("click", (function (a) { return function () { genSelectSkin(screen, a); }; })(i));
+        document.getElementById(screen.skinButtonPrefix).appendChild(elem);
+    }
+    $("#" + screen.skinButtonPrefix).pagify(112, ".skin-select-button");
+    $("#" + screen.skinButtonPrefix + "-pagination").pagify(10, ".page");
+}
+
+function NameScreen() {
+    this.element = document.getElementById("name");
+    this.linkElement = document.getElementById("link");
+    this.nameInput = document.getElementById("name-input");
+    this.teamInput = document.getElementById("team-input");
+    this.charMusicToggle = document.getElementById("char-music-toggle");
+    this.backbtn = document.getElementById("name-back");
+    this.isPrivate = false;
+    this.gameMode = 0;
+    this.privatebtn = document.getElementById("name-private-toggle");
+    this.gmbtn = document.getElementById("name-gm-change");
+    this.launchbtn = document.getElementById("name-launch");
+    this.autoMovebtn = document.getElementById("autoMove");
+    this.compactModebtn = document.getElementById("compactMode");
+    this.accessibilityModebtn = document.getElementById("accessibilityMode");
+    this.settingsClosebtn = document.getElementById("settingsClose");
+    this.padLoop = undefined;
+    this.skinButtonPrefix = "skin-select";
+    var that = this;
+    var elem = document.getElementById("levelSelectInput");
+    elem.addEventListener("change", (function () { return function (event) { that.customLevelFileChangeHandler(this, event); }; })());
+    elem = document.getElementById("gfxTestSkinInput");
+    elem.addEventListener("change", (function () { return function (event) { that.gfxTestSkinInputChangeHandler(this, event); }; })());
+    elem = document.getElementById("gfxTestMapInput");
+    elem.addEventListener("change", (function () { return function (event) { that.gfxTestMapInputChangeHandler(this, event); }; })());
+    elem = document.getElementById("gfxTestObjInput");
+    elem.addEventListener("change", (function () { return function (event) { that.gfxTestObjInputChangeHandler(this, event); }; })());
+
+    elem = document.getElementById("gfxTestSkinRemove");
+    elem.addEventListener("click", (function () { return function (event) { that.gfxTestSkinRemove(event); }; })());
+    elem = document.getElementById("gfxTestMapRemove");
+    elem.addEventListener("click", (function () { return function (event) { that.gfxTestMapRemove(event); }; })());
+    elem = document.getElementById("gfxTestObjRemove");
+    elem.addEventListener("click", (function () { return function (event) { that.gfxTestObjRemove(event); }; })());
+
+    this.autoMovebtn.addEventListener("click", (function () { return function (event) { that.setAutoMove(!app.autoMove); }; })());
+    this.compactModebtn.addEventListener("click", (function () { return function (event) { that.setCompactMode(!app.compactMode); }; })());
+    this.accessibilityModebtn.addEventListener("click", (function () { return function (event) { that.setAccessibilityMode(!app.accessibilityMode); }; })());
+
+    this.settingsClosebtn.onclick = function () {
+        document.getElementById("settingsPanel").style.display = "none";
+    }
+
+    this.launchbtn.onclick = function () {
+        document.getElementById('leaderboard').style.display = 'none';
+        that.launch();
+    };
+    this.teamInput.onkeyup = function () {
+        if (that.teamInput.value.trim() === "" && that.isPrivate) {
+            that.teamInput.placeholder = "[ PRIVATE ]";
+        } else
+            that.teamInput.placeholder = "Squad Code";
+    }
+    this.privatebtn.onclick = function () {
+        that.isPrivate = !that.isPrivate;
+        that.updPrivatebtn();
+        Cookies.set("priv", that.isPrivate, {
+            'expires': 0x1e
+        });
+        if (that.teamInput.value.trim() === "" && that.isPrivate) {
+            that.teamInput.placeholder = "[ PRIVATE ]";
+        } else
+            that.teamInput.placeholder = "Squad Code";
+    };
+    this.charMusicToggle.onclick = function () {
+        app.charMusic = !app.charMusic;
+        that.updMusicbtn();
+        Cookies.set("char_music", app.charMusic ? "0" : "1", {
+            'expires': 0x1e
+        });
+    }
+    this.gmbtn.onclick = function () {
+        that.gameMode = (that.gameMode + 1) % GAMEMODES.length;
+        that.updGameModebtn();
+        Cookies.set("gamemode", that.gameMode, {
+            'expires': 0x1e
+        });
+    }
+    this.backbtn.onclick = function () {
+        that.onBack();
+    };
+};
+
+NameScreen.prototype.updPrivatebtn = function () {
+    if (!this.isPrivate) {
+        this.privatebtn.classList.add("disabled");
+        this.privatebtn.classList.remove("enabled");
+
+        this.launchbtn.style.color = "";
+        this.launchbtn.classList.remove("tooltip");
+        if (this.launchbtn.lastChild.nodeName == "SPAN") {
+            this.launchbtn.removeChild(this.launchbtn.lastChild);
+        }
+    } else {
+        this.privatebtn.classList.add("enabled");
+        this.privatebtn.classList.remove("disabled");
+
+        this.launchbtn.style.color = "yellow";
+        this.launchbtn.classList.add("tooltip");
+
+        var elem = document.createElement("span");
+        elem.classList.add("tooltiptext");
+        elem.innerText = "You're joining a private room!"
+        this.launchbtn.appendChild(elem);
+    }
+}
+
+NameScreen.prototype.updMusicbtn = function () {
+    if (!app.charMusic) {
+        this.charMusicToggle.classList.add("disabled");
+        this.charMusicToggle.classList.remove("enabled");
+    } else {
+        this.charMusicToggle.classList.add("enabled");
+        this.charMusicToggle.classList.remove("disabled");
+    }
+}
+
+NameScreen.prototype.updGameModebtn = function () {
+    for (var i = 0; i < GAMEMODES.length; i++) {
+        this.gmbtn.classList.remove(GAMEMODES[i]);
+    }
+    this.gmbtn.classList.add(GAMEMODES[this.gameMode]);
+    const capitalize = function (s) { return s.charAt(0).toUpperCase() + s.slice(1) }
+    this.gmbtn.firstElementChild.innerHTML = "Change the current game mode<br><font size='2'>Current gamemode is: <u>" + capitalize(GAMEMODES[this.gameMode]) + "</u></font>";
+}
+
+NameScreen.prototype.selectSkin = function (skinIdx) {
+    genSelectSkin(this, skinIdx);
+}
+
+NameScreen.prototype.selectLevel = function (levelKey) {
+    app.net.send({ 'type': 'gsl', 'name': levelKey });
+}
+
+NameScreen.prototype.updateLevelSelectButton = function (name) {
+    if (this.currLevelSelectButton != undefined) {
+        this.currLevelSelectButton.style["border-color"] = "#EA9E22";
+    }
+    var elem;
+
+    if (name == "custom") {
+        elem = document.getElementById("levelSelectCustom");
+    } else {
+        for (var i = 0; i < levelSelectors.length; i++) {
+            var levels = levelSelectors[i].levels;
+            for (var j = 0; j < levels.length; j++) {
+                if (levels[j].longId == name) {
+                    elem = levels[j].elem;
+                    break;
+                }
+            }
+            if (elem) break; // Break the outer loop if elem is found
+        }
+    }
+
+    if (elem) {
+        elem.style["border-color"] = "white";
+        this.currLevelSelectButton = elem;
+    }
+};
+
+function uploadFile(binary, event, callback) {
+    var files = event.target.files;
+    if (files.length == 0) return;
+    var reader = new FileReader();
+    reader.onload = function (event) {
+        callback(event.target.result);
+    }
+    var file = files[0];
+    if (binary)
+        reader.readAsBinaryString(file);
+    else
+        reader.readAsText(file);
+};
+
+NameScreen.prototype.customLevelFileChangeHandler = function (elem, event) {
+    uploadFile(false, event, function (result) { app.net.send({ 'type': 'gsl', 'name': 'custom', 'data': result }); });
+};
+
+NameScreen.prototype.gfxTestSkinInputChangeHandler = function (elem, event) {
+    var that = this;
+    uploadFile(true, event, function (result) { that.setTestSkinImg(result); });
+};
+
+NameScreen.prototype.gfxTestMapInputChangeHandler = function (elem, event) {
+    var that = this;
+    uploadFile(true, event, function (result) { that.setTestMapImg(result); });
+};
+
+NameScreen.prototype.gfxTestObjInputChangeHandler = function (elem, event) {
+    var that = this;
+    uploadFile(true, event, function (result) { that.setTestObjImg(result); });
+};
+
+NameScreen.prototype.gfxTestSkinRemove = function (event) {
+    if (!app.overrideSkinImg) return;
+    app.overrideSkinImg = undefined;
+    delete localStorage["overrideSkinImg"];
+    delete app.game.display.resource.texture.cache["skin" + app.game.skin];
+    app.game.display.resource.loadTexture(app.game.display.resource.texture.res["skin" + app.game.skin]);
+};
+
+NameScreen.prototype.gfxTestMapRemove = function (event) {
+    if (!app.overrideMapImg) return;
+    app.overrideMapImg = undefined;
+    delete localStorage["overrideMapImg"];
+    delete app.game.display.resource.texture.cache["map"];
+    app.game.display.resource.loadTexture(app.game.display.resource.texture.res["map"]);
+};
+
+NameScreen.prototype.gfxTestObjRemove = function (event) {
+    if (!app.overrideObjImg) return;
+    app.overrideObjImg = undefined;
+    delete localStorage["overrideObjImg"];
+    delete app.game.display.resource.texture.cache["obj"];
+    app.game.display.resource.loadTexture(app.game.display.resource.texture.res["obj"]);
+};
+
+function makeImageFromData(data) {
+    var img = document.createElement('img');
+    d_data = data;
+    img.src = "data:image/png;base64," + btoa(data);
+    return img;
+}
+
+NameScreen.prototype.setTestSkinImg = function (data) {
+    var img = makeImageFromData(data);
+    localStorage["overrideSkinImg"] = data;
+    app.overrideSkinImg = img;
+    app.game.display.resource.texture.cache["skin" + app.game.skin] = img;
+};
+
+NameScreen.prototype.setTestMapImg = function (data) {
+    var img = makeImageFromData(data);
+    localStorage["overrideMapImg"] = data;
+    app.overrideMapImg = img;
+    app.game.display.resource.texture.cache["map"] = img;
+};
+
+NameScreen.prototype.setTestObjImg = function (data) {
+    var img = makeImageFromData(data);
+    localStorage["overrideObjImg"] = data;
+    app.overrideObjImg = img;
+    app.game.display.resource.texture.cache["obj"] = img;
+};
+
+NameScreen.prototype.setAutoMove = function (val) {
+    app.autoMove = val;
+    Cookies.set("autoMove", val, { 'expires': 0x1e });
+    this.autoMovebtn.innerText = (val ? "[X]" : "[ ]") + " Auto Move";
+};
+NameScreen.prototype.setCompactMode = function (val) {
+    app.compactMode = val;
+    Cookies.set("compactMode", val, { 'expires': 0x1e });
+    this.compactModebtn.innerText = (val ? "[X]" : "[ ]") + " Compact Mode";
+};
+NameScreen.prototype.setAccessibilityMode = function (val) {
+    app.accessibilityMode = val;
+    Cookies.set("accessibilityMode", val, { 'expires': 0x1e });
+    this.accessibilityModebtn.innerText = (val ? "[X]" : "[ ]") + " Replace Special World Textures";
+    try{
+        var resource = app.game.display.resource;
+        var texture = resource.texture;
+        if (val)
+            if (texture.cache.map.src.includes("special_")) {
+                var img = document.createElement('img');
+                img.src = ASSETS_URL + "img/game/smb_map_new.png?v=" + VERSION;
+                texture.cache["map"] = img;
+                app.mapReplaced = true;
+            }
+
+            if (texture.cache.obj.src.includes("special")) {
+                var img = document.createElement('img');
+                img.src = ASSETS_URL + "img/game/smb_obj.png?v=" + VERSION;
+                texture.cache["obj"] = img;
+                app.objReplaced = true;
+            }
+        else {
+            if (app.mapReplaced) {
+                var img = document.createElement('img');
+                img.src = ASSETS_URL + "img/game/special_map_new.png?v=" + VERSION;
+                texture.cache["map"] = img;
+                app.mapReplaced = false;
+            }
+
+            if (app.objReplaced) {
+                var img = document.createElement('img');
+                img.src = ASSETS_URL + "img/game/special2_obj.png?v=" + VERSION;
+                texture.cache["obj"] = img;
+                app.mapReplaced = false;
+            }
+        }
+    } catch(e) {}
+};
+
+NameScreen.prototype.launch = function () {
+    Cookies.set("name", this.nameInput.value, {
+        'expires': 0x1e
+    });
+    Cookies.set("team", this.teamInput.value, {
+        'expires': 0x1e
+    });
+    Cookies.set("skin", this.skin, {
+        'expires': 0x1e
+    });
+    app.join(this.nameInput.value, this.teamInput.value, this.isPrivate, this.skin, this.gameMode, [0, 0, 0]);
+};
+NameScreen.prototype.startPad = function () {
+    genStartPad(this);
+};
+NameScreen.prototype.show = function () {
+    app.menu.hideAll();
+    app.menu.navigation("name", "name");
+    app.menu.background('a');
+    var savedName = Cookies.get("name"),
+        savedTeam = Cookies.get("team"),
+        savedPriv = Cookies.get("priv"),
+        savedSkin = Cookies.get("skin"),
+        savedGm = Cookies.get("gamemode");
+    this.nameInput.value = savedName ? savedName : '';
+    this.teamInput.value = savedTeam ? savedTeam : '';
+    this.isPrivate = savedPriv ? (savedPriv == "true") : false;
+    this.gameMode = savedGm ? parseInt(savedGm) : 0;
+    if (this.teamInput.value.trim() === "" && this.isPrivate) {
+        this.teamInput.placeholder = "[ PRIVATE ]";
+    }
+    if ($("#skin-select div").length === 0) {
+        genAddSkinButton(this, true);
+    }
+    this.selectSkin(savedSkin ? parseInt(savedSkin) : 0);
+    this.updPrivatebtn();
+    this.updMusicbtn();
+    this.updGameModebtn();
+    this.startPad();
+    this.linkElement.style.display = "block";
+    this.element.style.display = "block";
+};
+NameScreen.prototype.hide = function () {
+    this.padLoop && clearTimeout(this.padLoop);
+    this.linkElement.style.display = "none";
+    this.element.style.display = "none";
+};
+NameScreen.prototype.onBack = function () {
+    app.menu.main.show();
+};
+"use strict";
+let skinSel = 0;
+let skinMenu = 0;
+let profileMode = "name";
+function ProfileScreen() {
+    this.element = document.getElementById("profile");
+    this.savebtn = document.getElementById("profile-save");
+    this.backbtn = document.getElementById("profile-back");
+    this.resultLabel = document.getElementById("profileSaveResult");
+    this.nicknameInput = document.getElementById("profile-nickname");
+    this.squadInput = document.getElementById("profile-team");
+    this.skinButtonPrefix = "profile-skin-select";
+    var that = this;
+    
+    this.savebtn.onclick = function () {
+        that.save();
+    };
+    this.backbtn.onclick = function () {
+        that.profileBack();
+    };
+
+    this.nameTab = document.getElementById("profile-nameTab");
+    this.skinsTab = document.getElementById("profile-skinsTab");
+    this.badgesTab = document.getElementById("profile-badgesTab");
+
+    this.nameTabBox = document.getElementById("profile-nameBox");
+    this.skinsTabBox = document.getElementById("profile-skinsBox");
+    this.badgesTabBox = document.getElementById("profile-badgesBox");
+
+    this.nameTabBtn = document.getElementById("profile-name");
+    this.skinsTabBtn = document.getElementById("profile-skins");
+    this.badgesTabBtn = document.getElementById("profile-badges");
+
+    this.nameTabBtn.onclick = function () {
+        that.nameTab.style.display = "";
+        that.nameTabBox.style.display = "";
+
+        that.skinsTab.style.display = "none";
+        that.skinsTabBox.style.display = "none";
+
+        that.badgesTab.style.display = "none";
+        that.badgesTabBox.style.display = "none";
+
+        profileMode = "name";
+        document.getElementById("nameTab-buttons").style.display = "";
+    };
+    
+    this.skinsTabBtn.onclick = function () {
+        that.nameTab.style.display = "none";
+        that.nameTabBox.style.display = "none";
+        
+        that.skinsTab.style.display = "";
+        that.skinsTabBox.style.display = "";
+        
+        that.badgesTab.style.display = "none";
+        that.badgesTabBox.style.display = "none";
+        
+        profileMode = "skins"
+        document.getElementById("nameTab-buttons").style.display = "none";
+    };
+    
+    this.badgesTabBtn.onclick = function () {
+        that.nameTab.style.display = "none";
+        that.nameTabBox.style.display = "none";
+        
+        that.skinsTab.style.display = "none";
+        that.skinsTabBox.style.display = "none";
+        
+        that.badgesTab.style.display = "";
+        that.badgesTabBox.style.display = "";
+        
+        profileMode = "badges";
+        document.getElementById("nameTab-buttons").style.display = "none";
+    };
+
+    document.getElementById("profile-badge-slot0").onclick = () => this.unequipBadge(0);
+    document.getElementById("profile-badge-slot1").onclick = () => this.unequipBadge(1);
+    document.getElementById("profile-badge-slot2").onclick = () => this.unequipBadge(2);
+}
+ProfileScreen.prototype.show = function (data) {
+    app.menu.hideAll();
+    this.linkElement = document.getElementById("link");
+    app.menu.navigation("profile", "profile");
+    app.menu.background('a');
+    this.nicknameInput.value = data["nickname"];
+    this.squadInput.value = data["squad"];
+    //$("#profile-skin-select div").length === 0;
+    document.getElementById('profile-skin-select').innerHTML = "";
+    let skins = app.menu.mainAsMember.skins;
+    for (var i in skins) {
+        var elem = document.createElement("div");
+        elem.setAttribute("class", "skin-shop-button");
+        elem.setAttribute("id", 'profile-skin-select-' + skins[i]);
+        elem.style["background-image"] = `url('${ASSETS_SKIN_URL + skins[i] + ".png"}')`;
+        elem.addEventListener("click", (function (a) { return function () { ProfileScreen.prototype.select(a); }; })(skins[i]));
+        document.getElementById('profile-skin-select').appendChild(elem);
+    }
+    $("#" + 'profile-skin-select').pagify(100, ".skin-shop-button");
+    $("#" + 'profile-skin-pagination').pagify(10, ".page");
+
+    document.getElementById('profile-badge-select').innerHTML = "";
+    let badges = app.menu.mainAsMember.badgesUnlocked;
+    for (var i in badges) {
+        var badge = badges[i];
+        if(badge == null || badge == 0) { continue; }
+
+        var elem = document.createElement("div");
+        elem.setAttribute("class", "badge-shop-button");
+        elem.setAttribute("id", 'profile-badge-select-' + badges[i]);
+        elem.style["background-image"] = `url('${ASSETS_URL + "img/game/badges.png"}')`;
+        var coords = BADGES_LIST[badge];
+        elem.style.backgroundPosition = `-${coords[0]}px -${coords[1]}px`;
+        elem.addEventListener("click", (function (a) { return function () { ProfileScreen.prototype.select(a); }; })(badges[i]));
+        document.getElementById('profile-badge-select').appendChild(elem);
+    }
+    $("#" + 'profile-badge-select').pagify(100, ".badge-shop-button");
+    $("#" + 'profile-badge-pagination').pagify(10, ".page");
+
+    this.selectSkin(data["skin"]);
+    skinMenu = data["skin"];
+    this.updateBadgeSlots();
+    this.linkElement.style.display = "";
+    this.element.style.display = "block";
+    this.reportError("");
+};
+ProfileScreen.prototype.selectSkin = function (skin) {
+    document.getElementById('profile-skin-select-' + skinSel).style["border-color"] = '#3c3c3c';
+    skinSel = skin;
+    document.getElementById('profile-skin-select-' + skin).style["border-color"] = '#fff';
+    this.setSkinPreview();
+};
+ProfileScreen.prototype.setSkinPreview = function () {
+    document.getElementById("profile-skin-preview").style.backgroundImage = `url("${ASSETS_SKIN_URL}${skinSel}.png")`;
+};
+ProfileScreen.prototype.select = function (item) {
+    switch(profileMode)
+    {
+        case "skins" : {
+            document.getElementById('profile-skin-select-' + skinSel).style["border-color"] = '#3c3c3c';
+            document.getElementById('profile-skin-select-' + item).style["border-color"] = '#fff';
+            skinSel = item;
+            this.setSkinPreview();
+            break;
+        }
+
+        case "badges" : {
+            var b = app.menu.mainAsMember.badges;
+            for(var i=0;i<b.length;i++) {
+                if(b[i] == 0) {
+                    b[i] = item;
+                    break;
+                }
+            }
+            this.updateBadgeSlots();
+            break;
+        }
+    }
+};
+ProfileScreen.prototype.setForm = function(playerForm) {
+    var skinPreview = document.getElementById("profile-skin-preview");
+
+    switch(playerForm)
+    {
+        case "small" : {
+            skinPreview.style.backgroundPosition = `-208px -0px`
+            skinPreview.style.width = "16px";
+            skinPreview.style.height = "16px";
+            skinPreview.style.marginTop = "176px";
+            skinPreview.style.marginLeft = "49%";
+            break;
+        }
+
+        default:
+        case "big" : {
+            skinPreview.style.backgroundPosition = `-208px -16px`
+            skinPreview.style.width = "16px";
+            skinPreview.style.height = "32px";
+            skinPreview.style.marginTop = "160px";
+            skinPreview.style.marginLeft = "49%";
+            break;
+        }
+        
+        case "fire": {
+            skinPreview.style.backgroundPosition = `-176px -48px`
+            skinPreview.style.width = "32px";
+            skinPreview.style.height = "32px";
+            skinPreview.style.marginTop = "160px";
+            skinPreview.style.marginLeft = "54.8%";
+            break;
+        }
+    }
+};
+ProfileScreen.prototype.unequipBadge = function (slot) {
+    if(slot > 2) { slot = 2; }
+    if(slot < 0) { slot = 0; }
+    app.menu.mainAsMember.badges[slot] = 0;
+    this.updateBadgeSlots();
+};
+ProfileScreen.prototype.updateBadgeSlots = function () {
+    var badges = app.menu.mainAsMember.badges;
+
+    for(var i=0;i<badges.length;i++) {
+        var elem = document.getElementById("profile-badge-slot" + i);
+        var coords = BADGES_LIST[badges[i]];
+        elem.style.backgroundPosition = `-${coords[0]}px -${coords[1]}px`;
+    }
+};
+ProfileScreen.prototype.hide = function () {
+    this.element.style.display = "none";
+};
+ProfileScreen.prototype.save = function () {
+    if (this.nicknameInput.value.length <= 2) {
+        return this.reportError("Nickname is too short");
+    } else if (this.nicknameInput.value.length > 20) {
+        return this.reportError("Nickname is too long");
+    } else {
+        app.net.send({
+            "type": "lpr",
+            "nickname": this.nicknameInput.value,
+            "squad": this.squadInput.value,
+            "skin": skinSel,
+            "badges": app.menu.mainAsMember.badges
+        });
+        app.menu.load.show("Saving profile...");
+    }
+}
+ProfileScreen.prototype.onBack = function () {
+    this.save();
+};
+ProfileScreen.prototype.profileBack = function () {
+    app.menu.mainAsMember.show();
+};
+ProfileScreen.prototype.reportError = function (message) {
+    this.resultLabel.style.display = message ? "block" : "none";
+    this.resultLabel.style.color = "red";
+    this.resultLabel.innerText = message;
+};
+
+"use strict";
+function AchievementsScreen() {
+    this.element = document.getElementById("achievements");
+    this.container = document.getElementById("achievements-container");
+    this.backBtn = document.getElementById("achievements-back");
+
+    var that = this;
+    this.backBtn.onclick = function () {
+        that.hide();
+    };
+
+    this.achievements = [
+        { title: "Tanooki Suit", description: "Get first place in SMB3 World 1", id: 54 },
+        { title: "Frog Suit", description: "Get first place in SMB3 World 2", id: 55 },
+        { title: "Hammer Suit", description: "Get first place in SMB3 World 1 in under 5 minutes", id: 56 },
+        { title: "Angry Sun", description: "Get 50 or more lifetime kills", id: 72 },
+        { title: "Retra", description: "Get first place in Retra's Challenge", id: 103 },
+        { title: "Yoshi Egg", description: "Get first place in Yoshi's Island", id: 86 },
+        { title: "Cape Feather", description: "Get first place in Yoshi's Island in under 3 minutes and 30 seconds", id: 78 },
+        { title: "Superball Flower", description: "Get first place in a Super Mario Land level", id: 87 },
+        { title: "Magic Carrot", description: "Get first place in Mario Zone", id: 88 },
+        { title: "CHIPS", description: "Get first place in RePaiNT", id: 104 },
+        { title: "Heart", description: "Get first place in XP World 1", id: 105 },
+        { title: "Octopus Battery", description: "Get first place in Cutman Stage", id: 92 },
+        { title: "Killer Bullet", description: "Get first place in Fireman Stage", id: 93 },
+        { title: "Slime", description: "Get first place in DMCA World", id: 94 },
+        { title: "Tricorn Toad", description: "Get first place in Tricorn World", id: 97 },
+        { title: "Iron Pickaxe", description: "Get first place in Minecraft World", id: 98 },
+    ];
+};
+
+AchievementsScreen.prototype.addAchievement = function(title, description, id) {
+    // Create container div
+    var container = document.createElement('div');
+    container.classList.add('container-achievement');
+    
+    var unlocked = app.menu.mainAsMember.badgesUnlocked.includes(id);
+    if(!unlocked) { container.style.filter = "grayscale(1)"; }
+    
+    // Create image div
+    var imageDiv = document.createElement('div');
+    imageDiv.style.width = '16px';
+    imageDiv.style.height = '16px';
+    imageDiv.style.backgroundImage = 'url("https://raw.githubusercontent.com/mroyale/assets/legacy/img/game/badges.png")';
+    imageDiv.style.transform = 'scale(5) translateX(100%) translateY(65%)';
+    var coords = BADGES_LIST[id];
+    imageDiv.style.backgroundPosition = `-${coords[0]}px -${coords[1]}px`;
+
+    // Create title div
+    var titleDiv = document.createElement('div');
+    titleDiv.style.fontSize = '16px';
+    titleDiv.style.marginLeft = '160px';
+    titleDiv.style.marginTop = '10px';
+    titleDiv.style.color = 'white';
+    if(unlocked) { titleDiv.style.color = 'yellow'; }
+    titleDiv.textContent = title;
+
+    // Create description div
+    var descriptionDiv = document.createElement('div');
+    descriptionDiv.style.fontSize = '16px';
+    descriptionDiv.style.marginLeft = '160px';
+    descriptionDiv.style.marginTop = '10px';
+    descriptionDiv.textContent = description;
+
+    // Append all created elements to the container
+    container.appendChild(imageDiv);
+    container.appendChild(titleDiv);
+    container.appendChild(descriptionDiv);
+
+    // Append the container to the document body or any desired parent element
+    this.container.appendChild(container);
+
+};
+
+AchievementsScreen.prototype.show = function() {
+    this.element.style.display = "";
+    app.menu.navigation("achievements", "achievements");
+
+    this.container.innerHTML = "";
+    var that = this;
+    for(var ach of this.achievements) {
+        that.addAchievement(ach.title, ach.description, ach.id)
+    };
+};
+
+AchievementsScreen.prototype.hide = function() {
+    this.element.style.display = "none";
+};
+
+"use strict";
+let skinSelected = null;
+let badgeSelected = null;
+let formSelected = "big";
+let shopMode = "skin";
+let shopStatusTimeout = null; // Timeout to remove the contents of the shop status (the thing that says you already have this, so and so)
+function ShopScreen() {
+    this.element = document.getElementById("shop");
+    this.backBtn = document.getElementById("shop-back");
+    this.buyBtn = document.getElementById("shop-purchase");
+    this.skinName = document.getElementById("shop-name");
+    this.itemPreview = document.getElementById("shop-preview");
+    var that = this;
+
+    this.backBtn.onclick = function() {
+        that.hide();
+    };
+    
+    
+    this.skinShopBtn = document.getElementById("shop-skins");
+    this.badgeShopBtn = document.getElementById("shop-badges");
+    
+    this.skinShopBtn.onclick = function() {
+        document.getElementById("shop-skin-select").style.display = "block";
+        document.getElementById("shop-badge-select").style.display = "none";
+        shopMode = "skin";
+        that.select(skinSelected || 3);
+        let shopResult = document.getElementById('shop-status');
+        document.getElementById('shop-status').innerText = "";
+        document.getElementById("shop-skin-select-pagination").style.display = "";
+        document.getElementById("shop-previewMenu").style.display = "";
+    }
+    this.badgeShopBtn.onclick = function() {
+        document.getElementById("shop-skin-select").style.display = "none";
+        document.getElementById("shop-badge-select").style.display = "block";
+        shopMode = "badge";
+        that.select(badgeSelected || 1);
+        document.getElementById('shop-status').innerText = "";
+        document.getElementById("shop-skin-select-pagination").style.display = "none";
+        document.getElementById("shop-previewMenu").style.display = "none";
+    }
+
+    this.buyBtn.onclick = function() {
+        that.purchase();
+    }
+    
+    this.successSound = document.getElementById("successSound");
+    this.failSound = document.getElementById("failSound");
+};
+
+ShopScreen.prototype.show = function() {
+    this.element.style.display = "";
+    app.menu.navigation("shop", "shop");
+
+    if(document.getElementById('shop-skin-select').children.length === 0) {
+        for(var skin of app.skinList) {
+            var elem = document.createElement("div");
+            elem.setAttribute("class", "skin-shop-button");
+            elem.setAttribute("id", 'shop-' + skin.id);
+            elem.style["background-image"] = "url('https://raw.githubusercontent.com/mroyale/assets/legacy/img/skins/smb_skin" + skin.id +".png')";
+            if(app.menu.mainAsMember.skins.includes(skin.id)) {
+                elem.style["filter"] = "grayscale(1)";
+		elem.style["opacity"] = "0.5";
+            };
+            elem.addEventListener("click", (function(a){return function() { ShopScreen.prototype.select(a); }; } ) (skin.id));
+            document.getElementById('shop-skin-select').appendChild(elem);
+        }
+    }
+    $("#" + 'shop-skin-select').pagify(100, ".skin-shop-button");
+    $("#" + 'shop-skin-pagination').pagify(10, ".page");
+
+    if(document.getElementById('shop-badge-select').children.length === 0) {
+        for(var badge of app.badgeList) {
+            var elem = document.createElement("div");
+            elem.setAttribute("class", "badge-shop-button");
+            elem.setAttribute("id", 'shopBadge-' + badge.id);
+            if(app.menu.mainAsMember.badgesUnlocked.includes(badge.id)) {
+                elem.style["filter"] = "grayscale(1)";
+		elem.style["opacity"] = "0.5";
+            };
+            var coords = BADGES_LIST[badge.id];
+            elem.style.backgroundPosition = `-${coords[0]}px -${coords[1]}px`;
+            elem.addEventListener("click", (function(a){return function() { ShopScreen.prototype.select(a); }; } ) (badge.id));
+            document.getElementById('shop-badge-select').appendChild(elem);
+        }
+    }
+    $("#" + 'shop-badge-select').pagify(100, ".badge-shop-button");
+    $("#" + 'shop-badge-pagination').pagify(10, ".page");
+
+    if(shopMode == "skin")
+    {
+        this.select(skinSelected || 3);
+    }
+    else if(shopMode == "badge")
+    {
+        this.select(badgeSelected || 1);
+        document.getElementById("shop-skin-select-pagination").style.display = "none";
+    }
+};
+
+ShopScreen.prototype.hide = function() {
+    this.element.style.display = 'none';
+};
+
+
+ShopScreen.prototype.orderSkins = function() {
+    let arr = {}
+    for(var skin of app.skinList) {
+        let obj = { 'id': skin.id, 'name': skin.name, 'coins': skin.coins, 'maker': skin.maker };
+        arr[skin.id] = obj;
+    }
+    return arr;
+};
+
+ShopScreen.prototype.orderBadges = function() {
+    let arr = {}
+    for(var badge of app.badgeList) {
+        let obj = { 'id': badge.id, 'name': badge.name || "None", 'coins': badge.coins, 'maker': badge.maker };
+        arr[badge.id] = obj;
+    }
+    return arr;
+};
+
+ShopScreen.prototype.setForm = function(playerForm) {
+    formSelected = playerForm;
+    var shopPreview = document.getElementById("shop-preview");
+    
+    if(shopMode == "badge") {
+        shopPreview.style.width = "16px";
+        shopPreview.style.height = "16px";
+        shopPreview.style.marginTop = "116px";
+        shopPreview.style.marginLeft = "49%";
+        return;
+    }
+
+    switch(formSelected)
+    {
+        case "small" : {
+            shopPreview.style.backgroundPosition = `-208px -0px`
+            shopPreview.style.width = "16px";
+            shopPreview.style.height = "16px";
+            shopPreview.style.marginTop = "116px";
+            shopPreview.style.marginLeft = "49%";
+            break;
+        }
+
+        default:
+        case "big" : {
+            shopPreview.style.backgroundPosition = `-208px -16px`
+            shopPreview.style.width = "16px";
+            shopPreview.style.height = "32px";
+            shopPreview.style.marginTop = "100px";
+            shopPreview.style.marginLeft = "49%";
+            break;
+        }
+        
+        case "fire": {
+            shopPreview.style.backgroundPosition = `-176px -48px`
+            shopPreview.style.width = "32px";
+            shopPreview.style.height = "32px";
+            shopPreview.style.marginTop = "100px";
+            shopPreview.style.marginLeft = "54.8%";
+            break;
+        }
+    }
+};
+
+ShopScreen.prototype.setInfo = function(item) {
+    let itemName = document.getElementById("shop-name");
+    let itemPrice = document.getElementById("shop-cost");
+    let arr = shopMode == "skin" ? this.orderSkins() : this.orderBadges();
+    itemName.innerText = arr[item]['name'];
+    itemPrice.innerText = arr[item]['coins'];
+
+    var buyBtn = document.getElementById("shop-purchase");
+
+    var ownedCond = (shopMode == "skin" ? app.menu.mainAsMember.skins.includes(arr[item]['id']) : app.menu.mainAsMember.badgesUnlocked.includes(arr[item]['id']))
+
+    if(arr[item]['coins'] > parseInt(app.menu.mainAsMember.coins) || ownedCond) {
+        buyBtn.style.color = "gray";
+        buyBtn.style.cursor = "default";
+    } else {
+        buyBtn.style.color = "white";
+        buyBtn.style.cursor = "pointer";
+    }
+
+    if(arr[item]["maker"] == null) {
+        document.getElementById("shop-maker-elem").style.display = "none";
+    } else {
+        document.getElementById("shop-maker-elem").style.display = "";
+        document.getElementById("shop-maker").innerText = arr[item]["maker"];
+    }
+    
+    if(shopMode == "skin")
+    {
+        var shopPreview = document.getElementById("shop-preview");
+        shopPreview.style.backgroundImage = "url('" + ASSETS_SKIN_URL + item + ".png')";
+        this.setForm(formSelected);
+        
+        shopPreview.style.transform = "scale(8) scaleX(-1)" ;
+    }
+    else if(shopMode == "badge")
+    {
+        var coords = BADGES_LIST[item];
+        
+        var shopPreview = document.getElementById("shop-preview");
+        shopPreview.style.backgroundImage = "url('" + ASSETS_URL + "img/game/badges.png')";
+        shopPreview.style.backgroundPosition = `-${coords[0]}px -${coords[1]}px`
+        shopPreview.style.height = "16px";
+        shopPreview.style.transform = "scale(8) scaleX(1)" ;
+    }
+};
+
+ShopScreen.prototype.purchase = function() {
+    switch(shopMode) {
+        case "skin" : {
+            app.net.send({ "type": "lbs", "skin": skinSelected });
+            break;
+        }
+        case "badge" : {
+            app.net.send({ "type": "lbb", "badge": badgeSelected });
+            break;
+        }
+    }
+};
+
+ShopScreen.prototype.select = function(item) {
+    if(shopMode == "skin")
+    {
+        skinSelected = item;
+    }
+    else if(shopMode == "badge")
+    {
+        badgeSelected = item;
+        this.setForm();
+    }
+    this.setInfo(item);
+};
+
+ShopScreen.prototype.error = function(msg) {
+    let shopResult = document.getElementById('shop-status');
+    shopResult.innerText = msg;
+    shopResult.style.color = 'rgb(255, 0, 0)';
+    clearTimeout(shopStatusTimeout);
+    shopStatusTimeout = setTimeout(() => shopResult.innerText = "", 3000);
+    this.failSound.play();
+};
+
+ShopScreen.prototype.success = function(msg, skin) {
+    let shopResult = document.getElementById('shop-status');
+    shopResult.innerText = msg;
+    clearTimeout(shopStatusTimeout);
+    shopStatusTimeout = setTimeout(() => shopResult.innerText = "", 3000);
+    shopResult.style.color = '#68BC00';
+    this.successSound.play();
+};
+
+ShopScreen.prototype.purchased = function(msg) {
+    let shopResult = document.getElementById('shop-status');
+    shopResult.innerText = msg;
+    clearTimeout(shopStatusTimeout);
+    shopStatusTimeout = setTimeout(() => shopResult.innerText = "", 3000);
+    shopResult.style.color = 'grey';
+    this.failSound().play(); // This actually won't play because of the request handling. Perhaps error ID 2
+};
+
+ShopScreen.prototype.handleCoins = function(data) {
+    let winElement = document.getElementById('stats-coins');
+    winElement.innerText = data;
+    app.menu.mainAsMember.coins = data;
+};
+
+
+function PwdChangeScreen() {
+    this.element = document.getElementById("pwd");
+    this.savebtn = document.getElementById("pwd-save");
+    this.passwordInput = document.getElementById("pwd-password-input");
+    this.passwordInput2 = document.getElementById("pwd-password2-input");
+    this.resultLabel = document.getElementById("pwdResult");
+    this.backbtn = document.getElementById("pwd-back");
+    var that = this;
+    this.savebtn.onclick = function () {
+        that.save();
+    };
+    this.backbtn.onclick = function () {
+        that.onBack();
+    };
+}
+PwdChangeScreen.prototype.show = function (data) {
+    app.menu.partHide();
+    app.menu.navigation("pwdChange", "pwdChange");
+    app.menu.background('a');
+    this.element.style.display = "block";
+    this.resultLabel.style.display = "none";
+};
+PwdChangeScreen.prototype.hide = function () {
+    this.element.style.display = "none";
+};
+PwdChangeScreen.prototype.reportError = function (message) {
+    this.resultLabel.style.display = "";
+    this.resultLabel.style.color = "red";
+    this.resultLabel.innerText = message;
+};
+PwdChangeScreen.prototype.save = function () {
+    this.reportError("");
+    var pw = this.passwordInput.value;
+    var pw2 = this.passwordInput2.value;
+    if (pw.length < 8) {
+        this.reportError("Password is too short");
+        return;
+    }
+    if (pw != pw2) {
+        this.reportError("Passwords don't match");
+        return;
+    }
+    app.net.send({
+        "type": "lpc",
+        "password": pw
+    });
+    app.menu.mainAsMember.show();
+}
+PwdChangeScreen.prototype.onBack = function () {
+    app.menu.mainAsMember.show();
+};
+"use strict";
+
+function LoginScreen() {
+    this.element = document.getElementById("login");
+    this.form = document.getElementById("login-form");
+    this.userNameInput = document.getElementById("login-username-input");
+    this.passwordInput = document.getElementById("login-password-input");
+    this.launchbtn = document.getElementById("login-do");
+    this.backbtn = document.getElementById("login-back");
+    this.resultLabel = document.getElementById("loginResult");
+    var that = this;
+    this.form.onsubmit = function (e) {
+        e.preventDefault(); // Don't let the page be redirected
+    }
+    this.launchbtn.onclick = function () {
+        that.launch();
+    };
+    this.backbtn.onclick = function () {
+        that._onBack();
+    };
+}
+LoginScreen.prototype.show = function () {
+    app.menu.partHide();
+    app.menu.navigation("login", "login");
+    app.menu.background('a');
+    this.element.style.display = "block";
+    this.resultLabel.style.display = "none";
+};
+LoginScreen.prototype.hide = function () {
+    this.element.style.display = "none";
+};
+
+LoginScreen.prototype._onBack = function () {
+    app.menu.main.show();
+};
+LoginScreen.prototype.reportError = function (message) {
+    this.resultLabel.style.display = "";
+    this.resultLabel.style.color = "red";
+    this.resultLabel.innerText = message;
+};
+LoginScreen.prototype.launch = function () {
+    this.reportError("");
+    var userName = this.userNameInput.value;
+    var pw = this.passwordInput.value;
+    if (userName.length < 3) {
+        this.reportError("Username is too short");
+        return;
+    }
+    if (pw.length < 3) {
+        this.reportError("Password is too short");
+        return;
+    }
+    app.login(userName, pw);
+};
+
+function RegisterScreen() {
+    this.element = document.getElementById("register");
+    this.form = document.getElementById("register-form");
+    this.userNameInput = document.getElementById("register-username-input");
+    this.passwordInput = document.getElementById("register-password-input");
+    this.passwordInput2 = document.getElementById("register-password2-input");
+    this.captchaInput = document.getElementById("register-captcha-input");
+    this.launchbtn = document.getElementById("register-do");
+    this.backbtn = document.getElementById("register-back");
+    this.resultLabel = document.getElementById("registerResult");
+    var that = this;
+    this.form.onsubmit = function (e) {
+        e.preventDefault(); // Don't let the page be redirected
+    }
+    this.launchbtn.onclick = function () {
+        that.launch();
+    };
+    this.backbtn.onclick = function () {
+        that._onBack();
+    };
+}
+RegisterScreen.prototype.show = function () {
+    app.menu.partHide();
+    app.menu.navigation("register", "register");
+    app.menu.background('a');
+    this.element.style.display = "block";
+    this.resultLabel.style.display = "none";
+};
+RegisterScreen.prototype.hide = function () {
+    this.element.style.display = "none";
+};
+RegisterScreen.prototype._onBack = function () {
+    app.menu.main.show();
+};
+RegisterScreen.prototype.reportError = function (message) {
+    this.resultLabel.style.display = "";
+    this.resultLabel.style.color = "red";
+    this.resultLabel.innerText = message;
+};
+RegisterScreen.prototype.launch = function () {
+    this.reportError("");
+    var userName = this.userNameInput.value;
+    var pw = this.passwordInput.value;
+    var pw2 = this.passwordInput2.value;
+    var captcha = this.captchaInput.value;
+    if (userName.length < 3) {
+        this.reportError("Username is too short");
+        return;
+    }
+    if (userName.length > 20) {
+        this.reportError("Username is too long");
+        return;
+    }
+    if (pw.length < 8) {
+        this.reportError("Password is too short");
+        return;
+    }
+    if (pw != pw2) {
+        this.reportError("Passwords don't match");
+        return;
+    }
+    if (captcha.length != 5) {
+        this.reportError("Invalid captcha");
+        return;
+    }
+    app.register(userName, pw, captcha);
+};
+
+function GameScreen() {
+    this.element = document.getElementById("game");
+    this.devConsoleToggle = document.getElementById("devConsole-showHide");
+    this.devConsoleMain = document.getElementById("devConsole-main");
+    this.devConsolePlayerList = document.getElementById("devConsole-playerList");
+    this.devConsoleOn = false;
+    this.devConsoleRenameForm = document.getElementById("devConsole-renameForm");
+    this.devConsoleRenameField = document.getElementById("devConsole-renameField");
+    this.devConsoleReSquadField = document.getElementById("devConsole-resquadField");
+    this.selectedPlayerId = null;
+    this.renamingPlayerId = null;
+    this.selectedPlayerTr = null;
+    var that = this;
+    this.devConsoleToggle.onclick = function (e) {
+        if (that.devConsoleOn) {
+            that.devConsoleOn = false;
+            that.devConsoleMain.style.display = "none";
+            e.target.innerText = "DEV>";
+        } else {
+            that.devConsoleOn = true;
+            that.devConsoleMain.style.display = "";
+            e.target.innerText = "DEV<";
+        }
+    }
+    document.getElementById("devConsole-kick").onclick = function () { that.kickPlayer() };
+    document.getElementById("devConsole-ban").onclick = function () { that.banPlayer() };
+    document.getElementById("devConsole-rename").onclick = function () { that.startRenamePlayer() };
+    document.getElementById("devConsole-renameDone").onclick = function () { that.finishRenamePlayer() };
+    document.getElementById("devConsole-resquadDone").onclick = function () { that.finishReSquadPlayer() };
+    document.getElementById("devConsole-forceStart").onclick = function () { app.net.send({ 'type': 'g51' }) }
+}
+GameScreen.prototype.show = function () {
+    app.menu.hideAll();
+    app.menu.navigation("game", "game");
+    app.menu.background('c');
+    this.element.style.display = "block";
+    if (app.game.isDev)
+        document.getElementById("devConsole").style.display = "";
+};
+GameScreen.prototype.hide = function () {
+    this.element.style.display = "none";
+};
+GameScreen.prototype.onBack = function () {
+    app.close();
+};
+GameScreen.prototype.updatePlayerList = function (playerList) {
+    var stillSelected = false;
+    this.selectedPlayerTr = null;
+    this.devConsolePlayerList.innerHTML = "";
+    var tbl = document.createElement("table");
+    tbl.style.color = "white";
+    this.devConsolePlayerList.appendChild(tbl);
+    var trh = document.createElement("tr");
+    tbl.appendChild(trh);
+    ["id", "account", "sqd", "nickname"].map(x => { var th = document.createElement("th"); th.innerText = x; trh.appendChild(th); });
+    var that = this;
+    for (var player of playerList) {
+        var tr = document.createElement("tr");
+        tbl.append(tr);
+        [player.id, player.username, player.team, player.displayName].map(x => { var td = document.createElement("td"); td.innerText = "" + x; tr.appendChild(td); });
+        tr.playerId = player.id;
+        if (this.selectedPlayerId == player.id) {
+            stillSelected = true;
+            tr.style.color = "yellow";
+            this.selectedPlayerTr = tr;
+        }
+        tr.onclick = (function (tr) {
+            return function (e) {
+                if (that.selectedPlayerTr) {
+                    that.selectedPlayerTr.style.color = "";
+                }
+                tr.style.color = "yellow";
+                that.selectedPlayerId = tr.playerId;
+                that.selectedPlayerTr = tr;
+            }
+        })(tr);
+    }
+    if (!stillSelected) this.selectedPlayerId = null;
+};
+
+GameScreen.prototype.kickPlayer = function () {
+    if (this.selectedPlayerId === null) return;
+    app.game.send({
+        'type': "gbn",
+        'pid': this.selectedPlayerId,
+        'ban': false
+    });
+};
+
+GameScreen.prototype.banPlayer = function () {
+    if (this.selectedPlayerId === null) return;
+    app.game.send({
+        'type': "gbn",
+        'pid': this.selectedPlayerId,
+        'ban': true
+    });
+};
+
+GameScreen.prototype.startRenamePlayer = function () {
+    if (this.selectedPlayerId === null) return;
+    this.renamingPlayerId = this.selectedPlayerId;
+    var playerInfo = app.getPlayerInfo(this.selectedPlayerId);
+    this.devConsoleRenameField.value = playerInfo.name;
+    this.devConsoleReSquadField.value = playerInfo.team;
+    this.devConsoleRenameForm.style.display = "";
+};
+
+GameScreen.prototype.finishRenamePlayer = function () {
+    if (this.selectedPlayerId === null) return;
+    var newName = this.devConsoleRenameField.value;
+    if (newName === "") return;
+    app.game.send({
+        'type': "gnm",
+        'pid': this.renamingPlayerId,
+        'name': newName
+    });
+    this.renamingPlayerId = null;
+    this.devConsoleRenameForm.style.display = "none";
+};
+
+GameScreen.prototype.finishReSquadPlayer = function () {
+    if (this.selectedPlayerId === null) return;
+    var newName = this.devConsoleReSquadField.value;
+    if (newName === "") return;
+    app.game.send({
+        'type': "gsq",
+        'pid': this.renamingPlayerId,
+        'name': newName
+    });
+    this.renamingPlayerId = null;
+    this.devConsoleRenameForm.style.display = "none";
+};
+
+"use strict";
+
+function Network() {
+    this.pendingArgs = [];
+}
+Network.CONNECTTYPE = {};
+Network.CONNECTTYPE.GUEST = 0;
+Network.CONNECTTYPE.LOGIN = 1;
+Network.CONNECTTYPE.REQ_CAPTCHA = 2;
+Network.CONNECTTYPE.REGISTER = 3;
+Network.CONNECTTYPE.RESUME = 4;
+Network.CONNECTTYPE.LEADERBOARD = 5;
+Network.CONNECTTYPE.GETPROFILE = 6;
+Network.CONNECTTYPE.MENU = 7;
+Network.prototype.connected = function () {
+    return undefined !== this.webSocket && this.webSocket.readyState !== WebSocket.CLOSED;
+};
+Network.prototype.openWs = function (args) {
+    var net = this;
+    if (this.connected()) {
+        app.menu.error.show("Connection already open. State error.");
+        return;
+    }
+    this.webSocket = new WebSocket(WEBSOCKET_SERVER);
+    this.webSocket.binaryType = "arraybuffer";
+    this.webSocket.onopen = function (e) {
+        "open" !== e.type && app.menu.error.show("Error. WS open event has unexpected result.");
+    };
+    this.webSocket.onmessage = function (e) {
+        e.data instanceof ArrayBuffer ? net.handleBinary(new Uint8Array(e.data)) : net.handlePacket(JSON.parse(e.data));
+    };
+    this.webSocket.onclose = function (e) {
+        net.webSocket = undefined;
+        document.getElementById("privLobby").style.display = "none";
+        document.getElementById("settings-show-privLobby").style.display = "none";
+        app.menu.error.show("Lost Connection to Game Server");
+    };
+};
+//connectType, name, team, priv, skin, gameMode
+Network.prototype.connect = function (args) {
+    var conn = this.connected();
+    this.pendingArgs = [];
+    if (0 == args.length) {
+        return;
+    }
+    if (!conn) {
+        this.pendingArgs = args;
+        this.openWs(args);
+        return;
+    }
+    app.menu.load.setMessage("Connecting to game server...");
+    connectType = args[0];
+    if (connectType == Network.CONNECTTYPE.GUEST) {
+        var name = args[1];
+        var team = args[2];
+        var priv = args[3];
+        var skin = args[4];
+        var gm = args[5];
+        var badges = args[6];
+        this.prefName = name;
+        this.prefTeam = team;
+        this.isPrivate = priv;
+        this.skin = skin;
+        this.gameMode = gm;
+        this.badges = badges || [0,0,0];
+        this.send({
+            'type': "l00",
+            'name': this.prefName,
+            'team': this.prefTeam,
+            'private': this.isPrivate,
+            'skin': this.skin,
+            'gm': this.gameMode,
+            'badges': this.badges
+        });
+    } else if (connectType == Network.CONNECTTYPE.LOGIN) {
+        var username = args[1];
+        this.send({
+            'type': "llg",
+            'username': username,
+            'password': args[2]
+        });
+    } else if (connectType == Network.CONNECTTYPE.REQ_CAPTCHA) {
+        this.send({
+            'type': "lrc"
+        });
+    } else if (connectType == Network.CONNECTTYPE.REGISTER) {
+        var username = args[1];
+        this.username = username;
+        this.send({
+            'type': "lrg",
+            'username': this.username,
+            'password': args[2],
+            'captcha': args[3]
+        });
+    } else if (connectType == Network.CONNECTTYPE.LEADERBOARD) {
+        setInterval(() => {
+            this.send({
+                'type': "llb"
+            });
+            app.updateLeaderboards();
+        }, 30000)
+    } else if (connectType == Network.CONNECTTYPE.GETPROFILE) {
+        app.viewProfile(args[1]);
+    } else if (connectType == Network.CONNECTTYPE.RESUME) {
+        var session = args[1];
+        this.session = session;
+        this.send({
+            'type': "lrs",
+            'session': this.session,
+        });
+    } else if (connectType == Network.CONNECTTYPE.MENU) {
+        app.menu.main.show();
+    } else {
+        console.error("args = " + args);
+        app.menu.error.show("Assert failed in Net.connect");
+    }
+};
+Network.prototype.handlePacket = function (data) {
+    if (undefined === this.state || !this.state.handlePacket(data)) {
+        switch (data.type) {
+            case "s00":
+                this.setState(data.state);
+                break;
+            case "s01":
+                this.handleBlob(data.packets);
+                break;
+            case "s02":
+                break;
+            case "x00":
+                app.menu.error.show("Server Exception", data.message);
+                break;
+            case "x01":
+                app.menu.error.show("Server Exception", data.message, data.trace);
+                break;
+            case "slb":
+                app.menu.warn.show(JSON.stringify(data.data.winsLeaderBoard));
+                break;
+            case "sui":
+                return app.unlockItem(data), true;
+            default:
+                app.menu.error.show("Recieved invalid packet type: " + data.type, JSON.stringify(data));
+        }
+    }
+};
+Network.prototype.handleBinary = function (data) {
+    this.state.handleBinary(data);
+};
+Network.prototype.handleBlob = function (packets) {
+    for (var i = 0x0; i < packets.length; i++) this.handlePacket(packets[i]);
+};
+Network.prototype.setState = function (newState) {
+    undefined !== this.state && this.state.destroy();
+    switch (newState) {
+        case 'l':
+            this.state = new InputState(this.pendingArgs);
+            break;
+        case 'g':
+            this.state = new GameState();
+            break;
+        default:
+            app.menu.error.show("Received invalid state ID: " + newState);
+            return;
+    }
+    this.state.ready();
+};
+Network.prototype.send = function (data) {
+    this.webSocket.send(JSON.stringify(data));
+};
+Network.prototype.sendBinary = function (data) {
+    this.webSocket.send(data.buffer);
+};
+Network.prototype.close = function () {
+    undefined !== this.webSocket && this.webSocket.close();
+    app.ingame() && app.game.destroy();
+};
+"use strict";
+
+function InputState(pendingArgs) {
+    this.pendingArgs = pendingArgs;
+}
+InputState.prototype.handlePacket = function (data) {
+    switch (data.type) {
+        case "l01":
+            return this.loggedIn(data), true;
+        case "llg":
+            return this.handleLoginResult(data), true;
+        case "lgp":
+            return app.handleViewProfile(data), true;
+        case "lrc":
+            return this.handleRequestCaptcha(data), true;
+        case "lrg":
+            return this.handleRegisterResult(data), true;
+        case "lrs":
+            return this.handleLoginResult(data), true;
+        case "llo":
+            return this.handleLogoutResult(data), true;
+        case "lpr":
+            return this.handleUpdProfileResult(data), true;
+        case "llb":
+            return this.updateLeaderboard(data), true;
+        case "lss":
+            app.menu.mainAsMember.skins = data.skins;
+            document.getElementById("profile-statSkins").innerText = data.skins.length;
+            return true;
+        case "lgs":
+            app.skinList = data["skins"];
+            app.badgeList = data["badges"];
+            app.menu.shop.show();
+            return true;
+        case "lbs":
+            this.handleSkinResult(data);
+            return true;
+        case "lbb":
+            this.handleBadgeResult(data);
+            return true;
+        default:
+            return false;
+    }
+};
+InputState.prototype.handleBinary = function (data) {
+    app.menu.warn.show("Recieved unexpected binary data!");
+};
+InputState.prototype.ready = function () {
+    app.net.connect(app.net.pendingArgs);
+};
+InputState.prototype.loggedIn = function (data) {
+    app.net.name = data.name;
+    console.log("Logged in: " + data.name + " :: " + data.team);
+};
+InputState.prototype.handleLogoutResult = function (data) {
+    Cookies.remove("session_legacy");
+    Cookies.remove("go_to_lobby");
+    location.reload();
+};
+InputState.prototype.handleUpdProfileResult = function (data) {
+    if(!data.status) {
+        app.menu.mainAsMember.showProfile();
+        app.menu.profile.reportError(data.msg);
+        return;
+    }
+    var nickname = app.menu.profile.nicknameInput.value;
+    var squad = app.menu.profile.squadInput.value;
+    var skin = app.menu.profile.skin;
+    var badges = app.menu.mainAsMember.badges;
+    var changes = data.changes;
+    if ("nickname" in changes) nickname = changes.nickname;
+    if ("squad" in changes) squad = changes.squad;
+    if ("skin" in changes) skin = changes.skin;
+    if ("badges" in changes) badges = changes.badges;
+    if (data.status) {
+        app.menu.mainAsMember.show(data.changes);
+    }
+};
+InputState.prototype.handleSkinResult = function (data) {
+    let shop = app.menu.shop;
+    data.success ? shop.success(data.message) : shop.error(data.message);
+    
+    if (data.success) { shop.handleCoins(data.coins); app.menu.mainAsMember.skins = data.skins; document.getElementById("profile-statSkins").innerText = data.skins.length; }
+};
+InputState.prototype.handleBadgeResult = function (data) {
+    let shop = app.menu.shop;
+    data.success ? shop.success(data.message) : shop.error(data.message);
+    if (data.success) { shop.handleCoins(data.coins); app.menu.mainAsMember.badgesUnlocked = data.badgesUnlocked; document.getElementById("profile-statBadges").innerText = (data.badgesUnlocked.length - 1); }
+};
+InputState.prototype.handleLoginResult = function (data) {
+    if (data.status) {
+        app.net.username = data.username;
+        app.menu.mainAsMember.show(data.msg);
+    } else {
+        Cookies.remove("session_legacy");
+        app.menu.login.show();
+        app.menu.login.reportError(data.msg);
+    }
+};
+InputState.prototype.handleRequestCaptcha = function (data) {
+    if (data.data) {
+        var img = document.getElementById("register-captcha");
+        img.src = (!data.data.startsWith("data:image") ? "data:image/png;base64, " : "") + data.data;
+    } else {
+        document.getElementById('register-captcha-input').style.display = 'none';
+    }
+    app.menu.register.show();
+};
+InputState.prototype.handleRegisterResult = function (data) {
+    if (data.status) {
+        app.menu.mainAsMember.show(data.msg);
+    } else {
+        app.menu.register.show();
+        app.menu.register.reportError(data.msg);
+    }
+};
+InputState.prototype.send = function (data) {
+    app.net.send(data);
+};
+InputState.prototype.type = function () {
+    return 'l';
+};
+InputState.prototype.destroy = function () { };
+"use strict";
+
+function GameState() {
+    this.pingOut = false;
+    this.pingLast = 0x0;
+    this.pingFrame = 0x5a;
+}
+GameState.prototype.handlePacket = function (data) {
+    if(data.designation && app.game) {
+        return app.game.handlePacket(data);
+    }
+    switch (data.type) {
+        case "g01":
+            return this.load(data), true;
+        case "g06":
+            return this.globalWarn(data), true;
+        case "g21":
+            return this.recievePing(data), true;
+        case "gll":
+            return this.receiveLevelList(data), true;
+        case "gsl":
+            return this.recieveLevelSelectResult(data), true;
+        case "gnm":
+            return this.renamePlayer(data), true;
+        case "gsq":
+            return this.resquadPlayer(data), true;
+        case "ghu":
+            return app.hurryUp(data), true;
+        case "g14":
+            return app.unlockItem(data), true;
+        case "gtk":
+            return app.tick(data), true;
+        case "gsm":
+            return this.receiveMessage(data), true;
+        default:
+            return app.ingame() ? app.game.handlePacket(data) : false;
+    }
+};
+GameState.prototype.handleBinary = function (data) {
+    app.ingame() && app.game.handleBinary(data);
+};
+GameState.prototype.ready = function () {
+    this.send({
+        'type': "g00"
+    });
+};
+GameState.prototype.load = function (data) {
+    var gameState = this;
+    if (data.game == "custom") {
+        var levelData = JSON.parse(data.levelData);
+        app.load(levelData);
+        gameState.send({
+            'type': "g03"
+        });
+        return;
+    }
+    $.ajax({
+        'url': "game/" + data.game + "?v=" + VERSION,    //get level data
+        'type': "GET",
+        'timeout': 0x1388,
+        'success': function (data) {
+            app.load(data);
+            gameState.send({
+                'type': "g03"
+            });
+        },
+        'error': function () {
+            app.menu.error.show("Server returned FNF(404) for game file: " + data.game);
+        }
+    });
+};
+GameState.prototype.receiveMessage = function (data) {
+    function sanitize(string) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#x27;',
+            "/": '&#x2F;',
+        };
+        const reg = /[&<>"'/]/ig;
+        return string.replace(reg, (match)=>(map[match]));
+    }
+
+    /* the jquery scrolling method is a bit convoluted but eh */
+    let color;
+    let usercolor;
+
+    if (data.warn) {
+        switch (data.warn) {
+            case 1 : { color = "#FF6600"; break; }
+            case 2 : { color = "#FF0000"; break; }
+            case 3 : { color = "#00FF00"; break; }
+            case 4 : { color = "#FFFF00"; break; }
+        }
+    }
+
+    if (data.mod) { usercolor = "#00FF00"; }
+    if (data.dev) { usercolor = "#FFFF00"; }
+
+    let message = sanitize(data.message);
+    if (data.global) {
+        let messages = document.getElementById("messagesGlobal");
+
+        data.warn ? messages.innerHTML += `<span style='color:` + color + `'>${message}</span>\n\n` : messages.innerHTML += `<span><span style="color:${usercolor}">${data.name}</span>: ${message}</span>\n\n`;
+
+        jQuery( function(){
+            var pre = jQuery("#messagesGlobal");
+             pre.scrollTop( pre.prop("scrollHeight") );
+        });
+    } else {
+        let messagesq = document.getElementById("messagesSquad");
+        data.warn ? messagesq.innerHTML += `<span style='color:` + color + `'>${message}</span>\n\n` : messagesq.innerHTML += `<span><span style="color:${usercolor}">${data.name}</span>: ${message}</span>\n\n`;
+        jQuery( function(){
+            var pre = jQuery("#messagesSquad");
+             pre.scrollTop( pre.prop("scrollHeight") );
+        });
+    }
+};
+GameState.prototype.globalWarn = function (data) {
+    app.menu.warn.show(data.message);
+};
+GameState.prototype.sendPing = function () {
+    var delta = util.time.now();
+    this.pingOut && 0x3e7 > this.pingLast - delta || (this.pingOut && (app.net.ping = 0x3e7), this.send({
+        'type': "g21",
+        'delta': delta
+    }), this.pingOut = true);
+};
+GameState.prototype.recievePing = function (packet) {
+    var delta = util.time.now();
+    app.net.ping = delta - packet.delta;
+    this.pingOut = false;
+};
+GameState.prototype.receiveLevelList = function (data) {
+    levelSelectors = data.groups;
+    //levelSelectors.unshift({ shortId: "?", longId: "" });
+    function moveGroup(groupName, place) {
+        var groupToMove = null;
+        for (var i = 0; i < levelSelectors.length; i++) {
+            if (levelSelectors[i].groupName.toLowerCase() === groupName.toLowerCase()) {
+                groupToMove = levelSelectors.splice(i, 1)[0];
+                break; // exit loop once found
+            }
+        }
+        if (groupToMove) {
+            place === "start" ? levelSelectors.unshift(groupToMove) : levelSelectors.push(groupToMove);
+        }
+    }
+    moveGroup("Super Mario Bros.", "start");
+    moveGroup("Super Mario Bros.", "start");
+    moveGroup("SMB3 + SML + MM", "end")
+    moveGroup("Other", "end");
+
+    for (var i = 0; i < levelSelectors.length; i++) {
+        var group = levelSelectors[i];
+        
+        // Create a div for the group
+        var groupDiv = document.createElement("div");
+        groupDiv.setAttribute("class", "groupContainer");
+        
+        // Create a header for the group
+        var headerElem = document.createElement("div");
+        headerElem.setAttribute("class", "groupHeader");
+        headerElem.innerText = group.groupName;
+        groupDiv.appendChild(headerElem);
+        
+        // Iterate over levels within the group
+        for (var j = 0; j < group.levels.length; j++) {
+            var level = group.levels[j];
+            var levelElem = document.createElement("div");
+            levelElem.setAttribute("class", "levelSelectButton");
+            levelElem.innerText = level.shortId;
+            levelElem.addEventListener("click", (function (a) { 
+                return function () { app.menu.name.selectLevel(a); }; 
+            })(level.longId));
+            groupDiv.appendChild(levelElem);
+            level.elem = levelElem;
+        }
+        
+        // Append the group div to the levelSelectStandard element
+        document.getElementById("levelSelectStandard").appendChild(groupDiv);
+    }
+    
+    $("#" + 'levelSelectStandard').pagify(1, ".groupContainer");
+    $("#" + 'badge-pagination').pagify(10, ".page");
+    document.getElementById("privLobbyClose").onclick = function () {
+        document.getElementById("privLobby").style.display = "none";
+    };
+    document.getElementById("settings-show-privLobby").onclick = function () {
+        document.getElementById("privLobby").style.display = "";
+        app.settings.showSettings = false;
+        document.getElementById("settingsPanel").style.display = "none";
+    };
+    document.getElementById("privLobby").style.display = "";
+    document.getElementById("settings-show-privLobby").style.display = "";
+}
+GameState.prototype.recieveLevelSelectResult = function (data) {
+    if (data.status == "error") {
+        var elem = document.getElementById("levelSelectCustomResult");
+        elem.innerText = data.message;
+        elem.style.color = "red";
+    } else if (data.status == "success") {
+        var elem = document.getElementById("levelSelectCustomResult");
+        elem.innerText = "upload successful";
+        elem.style.color = "white";
+    } else if (data.status == "update") {
+        app.menu.name.updateLevelSelectButton(data.name);
+    }
+};
+GameState.prototype.renamePlayer = function (data) {
+    var player = app.getPlayerInfo(data.pid);
+    player.name = data.name;
+    player.displayName = getPlayerDisplayName(player);
+    app.menu.game.updatePlayerList(app.players);
+    var ghost = app.game.getGhost(data.pid);
+    if (ghost && ghost.name !== undefined) {
+        ghost.name = player.displayName;
+    }
+    if (data.pid == app.game.pid && player.isGuest) {
+        Cookies.set("name", data.name, { 'expires': 0x1e });
+    }
+};
+GameState.prototype.resquadPlayer = function (data) {
+    var player = app.getPlayerInfo(data.pid);
+    player.team = data.name;
+    app.menu.game.updatePlayerList(app.players);
+    if (data.pid == app.game.pid) {
+        app.game.team = data.name;
+        for (var obj of app.game.objects) {
+            if (undefined !== obj.pid) {
+                var player1 = app.getPlayerInfo(obj.pid);
+                obj.name = (player1.team == app.game.team) ? player1.displayName : undefined;
+            }
+        }
+    } else {
+        var ghost = app.game.getGhost(data.pid);
+        if (ghost) {
+            ghost.name = (player.team == app.game.team) ? player.displayName : undefined;
+        }
+    }
+    if (data.pid == app.game.pid && player.isGuest) {
+        Cookies.set("team", data.name, { 'expires': 0x1e });
+    }
+};
+GameState.prototype.send = function (data) {
+    app.net.send(data);
+};
+GameState.prototype.type = function () {
+    return 'g';
+};
+GameState.prototype.destroy = function () { };
+"use strict";
+
+function GameObject(game, level, zone, pos) {
+    this.game = game;
+    this.level = level;
+    this.zone = zone;
+    this.pos = pos;
+    this.sprite = this.state = undefined;
+    this.garbage = this.dead = this.reverse = false;
+    this.sounds = [];
+}
+GameObject.ASYNC = true;
+GameObject.ID = 0x0;
+GameObject.prototype.update = function (packet) { };
+GameObject.prototype.step = function () { };
+GameObject.prototype.sound = function () {
+    for (var i = 0x0; i < this.sounds.length; i++) {
+        var sound = this.sounds[i];
+        sound.done() ? this.sounds.splice(i--, 0x1) : sound.position(this.pos);
+    }
+};
+GameObject.prototype.kill = function () {
+    this.dead = true;
+    this.destroy();
+};
+GameObject.prototype.destroy = function () {
+    this.garbage = this.dead = true;
+};
+GameObject.prototype.isTangible = function () {
+    return !this.dead && !this.disabled && this.dim;
+};
+GameObject.prototype.draw = function () { };
+GameObject.prototype.play = function (_0x5c61d3, _0x1cd15d, _0x457912) {
+    var zone = this.game.getZone();
+    if (this.zone === zone.id && this.level === zone.level) return _0x5c61d3 = app.audio.getSpatialAudio(_0x5c61d3, _0x1cd15d, _0x457912, "effect"), _0x5c61d3.play(this.pos), this.sounds.push(_0x5c61d3), _0x5c61d3;
+};
+GameObject.OBJECT_LIST = [];
+GameObject.REGISTER_OBJECT = function (objClass) {
+    GameObject.OBJECT_LIST.push(objClass);
+};
+GameObject.OBJECT = function (classId) {
+    for (var i = 0x0; i < GameObject.OBJECT_LIST.length; i++) {
+        var obj = GameObject.OBJECT_LIST[i];
+        if (obj.ID === classId) return obj;
+    }
+    app.menu.warn.show("Invalid Object Class ID: " + classId);
+};
+"use strict";
+
+function PlayerObject(game, level, zone, pos, pid, skin, isDev, isJunior, isMod, followPlayer, name, killTarget, badges) {
+    GameObject.call(this, game, level, zone, vec2.add(pos, vec2.make(0.15, 0)));
+    this.pid = pid;
+    this.skin = skin;
+    game.display.ensureSkin(skin);
+    this.isDev = isDev;
+    this.isMod = isMod;
+    this.followPlayer = followPlayer || false;
+    this.collidingAgainstWall = false; // the automove cant normally jump over obstacles so we need this xd
+    this.killTarget = killTarget || false;
+    this.isGuest = false;
+    this.anim = 0x0;
+    this.reverse = false;
+    this.deadTimer = this.deadFreezeTimer = this.arrowFade = 0x0;
+    this.lastPos = this.pos;
+    this.lives = null;
+    this.dim = vec2.make(0x1, 0x1);
+    this.fallSpeed = this.moveSpeed = 0x0;
+    this.jumping = -0x1;
+    this.springJump = 0; // 0: regular jump, 1: red/normal spring, 2: green/super spring
+    this.grounded = this.isSpring = this.isBounce = false;
+    this.spectator = false;
+    this.underWater = 0;    //0:no, 1:standard, 2:surface
+    this.name = name || undefined;
+    this.badges = badges || undefined;
+    this.starTimer = this.power = 0x0;
+    this.starMusic = undefined;
+    this.tfmTimer = this.damageTimer = 0x0;
+    this.tfmTarget = -0x1;
+    this.pipeWarp = undefined;
+    this.pipeTimer = 0x0;
+    this.pipeExt = this.pipeDir = -0x1;
+    this.poleTimer = this.pipeDelayLength = this.pipeDelay = 0x0;
+    this.poleSound = this.poleWait = false;
+    this.vineWarp = undefined;
+    this.attackCharge = PlayerObject.MAX_CHARGE;
+    this.attackTimer = 0x0;
+    this.autoTarget = undefined;
+    this.btnD = [0x0, 0x0];
+    this.btnU = false;
+    this.btnBde = this.btnBg = this.btnB = this.btnA = false;
+    this.crouchJump = false;
+    this.btnAHot = false;
+    this.swimspr = 0;
+    this.setState(PlayerObject.SNAME.STAND);
+}
+PlayerObject.ASYNC = false;
+PlayerObject.ID = 0x1;
+PlayerObject.NAME = "PLAYER";
+PlayerObject.ANIMATION_RATE = 0x3;
+PlayerObject.DIM_OFFSET = vec2.make(-0.16, 0x0);
+PlayerObject.DEAD_FREEZE_TIME = 0x7;
+PlayerObject.DEAD_TIME = 0x46;
+PlayerObject.DEAD_UP_FORCE = 0.65;
+PlayerObject.RUN_SPEED_MAX = 0.315;
+PlayerObject.MOVE_SPEED_MAX = 0.215;
+PlayerObject.MOVE_SPEED_ACCEL = 0.0125;
+PlayerObject.MOVE_SPEED_DECEL = 0.0225;
+PlayerObject.MOVE_SPEED_ACCEL_AIR = 0.0025;
+PlayerObject.STUCK_SLIDE_SPEED = 0.09;
+PlayerObject.FALL_SPEED_MAX = 0.45;
+PlayerObject.SWIM_FALL_SPEED_MAX = 0.3;
+PlayerObject.FALL_SPEED_ACCEL = 0.085;
+PlayerObject.BOUNCE_LENGTH_MIN = 0x1;
+PlayerObject.SPRING_LENGTH_MIN = 0x5;
+PlayerObject.SPRING_LENGTH_MAX = 0xe;
+PlayerObject.JUMP_LENGTH_MIN = 0x3;
+PlayerObject.JUMP_LENGTH_MAX = 0x7;
+PlayerObject.JUMP_SPEED_INC_THRESHOLD = [0.1, 0.2, 0.25];
+PlayerObject.JUMP_DECEL = 0.005;
+PlayerObject.BLOCK_BUMP_THRESHOLD = 0.12;
+PlayerObject.POWER_INDEX_SIZE = 0x20;
+PlayerObject.GENERIC_INDEX = 0x60;
+PlayerObject.DAMAGE_TIME = 0x2d;
+PlayerObject.TRANSFORM_TIME = 0x12;
+PlayerObject.TRANSFORM_ANIMATION_RATE = 0x2;
+PlayerObject.STAR_LENGTH = 380;
+PlayerObject.PROJ_OFFSET = vec2.make(0.2, 1.1);
+PlayerObject.MAX_CHARGE = 0x3c;
+PlayerObject.ATTACK_DELAY = 0x7;
+PlayerObject.ATTACK_CHARGE = 0x19;
+PlayerObject.ATTACK_ANIM_LENGTH = 0x3;
+PlayerObject.PIPE_TIME = 0x1e;
+PlayerObject.PIPE_SPEED = 0.06;
+PlayerObject.PIPE_EXT_OFFSET = vec2.make(0.5, 0x0);
+PlayerObject.WEED_EAT_RADIUS = 0x3;
+PlayerObject.POLE_DELAY = 0xf;
+PlayerObject.POLE_SLIDE_SPEED = 0.15;
+PlayerObject.LEVEL_END_MOVE_OFF = vec2.make(0xa, 0x0);
+PlayerObject.CLIMB_SPEED = 0.125;
+PlayerObject.PLATFORM_SNAP_DIST = 0.15;
+PlayerObject.ARROW_SPRITE = 0xfd;
+PlayerObject.ARROW_TEXT = "YOU";
+PlayerObject.ARROW_OFFSET = vec2.make(0x0, 0.1);
+PlayerObject.TEXT_OFFSET = vec2.make(0x0, 0.55);
+PlayerObject.TEXT_SIZE = 0.65;
+PlayerObject.TEXT_COLOR = "#FFFFFF";
+PlayerObject.ARROW_RAD_IN = 0x3;
+PlayerObject.ARROW_RAD_OUT = 0x7;
+PlayerObject.ARROW_THRESHOLD_MIN = 0x4;
+PlayerObject.ARROW_THRESHOLD_MAX = 0x6;
+PlayerObject.TEAM_OFFSET = vec2.make(0x0, 0x0);
+PlayerObject.TEAM_SIZE = 0.3;
+PlayerObject.TEAM_COLOR = "rgba(255,255,255,0.75)";
+PlayerObject.DEV_TEAM_COLOR = "rgba(255,255,0,1)";
+PlayerObject.MOD_TEAM_COLOR = "rgba(0,255,0,1)";
+PlayerObject.SPRITE = {};
+PlayerObject.SPRITE_LIST = [{
+    'NAME': "S_STAND",
+    'ID': 0x0,
+    'INDEX': 0xd
+}, {
+    'NAME': "S_TAUNT",
+    'ID': 0x8,
+    'INDEX': 0x5
+}, {
+    'NAME': "S_RUN0",
+    'ID': 0x1,
+    'INDEX': 0xa
+}, {
+    'NAME': "S_RUN1",
+    'ID': 0x2,
+    'INDEX': 0xb
+}, {
+    'NAME': "S_RUN2",
+    'ID': 0x3,
+    'INDEX': 0xc
+}, {
+    'NAME': "S_SLIDE",
+    'ID': 0x4,
+    'INDEX': 0x9
+}, {
+    'NAME': "S_FALL",
+    'ID': 0x5,
+    'INDEX': 0x8
+}, {
+    'NAME': "S_SWIM0",
+    'ID': 0x9,
+    'INDEX': 95
+}, {
+    'NAME': "S_SWIM1",
+    'ID': 0xa,
+    'INDEX': 94
+}, {
+    'NAME': "S_SWIM2",
+    'ID': 0xb,
+    'INDEX': 93
+}, {
+    'NAME': "S_SWIM3",
+    'ID': 0xc,
+    'INDEX': 92
+}, {
+    'NAME': "S_SWIM4",
+    'ID': 0xd,
+    'INDEX': 91
+}, {
+    'NAME': "S_CLIMB0",
+    'ID': 0x6,
+    'INDEX': 0x6
+}, {
+    'NAME': "S_CLIMB1",
+    'ID': 0x7,
+    'INDEX': 0x7
+}, {
+    'NAME': "B_STAND",
+    'ID': 0x20,
+    'INDEX': [
+        [0x2d],
+        [0x1d]
+    ]
+}, {
+    'NAME': "B_TAUNT",
+    'ID': 0x2A,
+    'INDEX': [
+        [32],
+        [16]
+    ]
+}, {
+    'NAME': "B_DOWN",
+    'ID': 0x21,
+    'INDEX': [
+        [0x2c],
+        [0x1c]
+    ]
+}, {
+    'NAME': "B_RUN0",
+    'ID': 0x22,
+    'INDEX': [
+        [0x29],
+        [0x19]
+    ]
+}, {
+    'NAME': "B_RUN1",
+    'ID': 0x23,
+    'INDEX': [
+        [0x2a],
+        [0x1a]
+    ]
+}, {
+    'NAME': "B_RUN2",
+    'ID': 0x24,
+    'INDEX': [
+        [0x2b],
+        [0x1b]
+    ]
+}, {
+    'NAME': "B_SLIDE",
+    'ID': 0x25,
+    'INDEX': [
+        [0x28],
+        [0x18]
+    ]
+}, {
+    'NAME': "B_FALL",
+    'ID': 0x26,
+    'INDEX': [
+        [0x27],
+        [0x17]
+    ]
+}, {
+    'NAME': "B_SWIM0",
+    'ID': 0x2B,
+    'INDEX': [
+        [127],
+        [111]
+    ]
+}, {
+    'NAME': "B_SWIM1",
+    'ID': 0x2C,
+    'INDEX': [
+        [126],
+        [110]
+    ]
+}, {
+    'NAME': "B_SWIM2",
+    'ID': 0x2D,
+    'INDEX': [
+        [125],
+        [109]
+    ]
+}, {
+    'NAME': "B_SWIM3",
+    'ID': 0x2F,
+    'INDEX': [
+        [124],
+        [108]
+    ]
+}, {
+    'NAME': "B_SWIM4",
+    'ID': 0x30,
+    'INDEX': [
+        [123],
+        [107]
+    ]
+}, {
+    'NAME': "B_SWIM5",
+    'ID': 0x31,
+    'INDEX': [
+        [122],
+        [106]
+    ]
+}, {
+    'NAME': "B_CLIMB0",
+    'ID': 0x27,
+    'INDEX': [
+        [0x25],
+        [0x15]
+    ]
+}, {
+    'NAME': "B_CLIMB1",
+    'ID': 0x28,
+    'INDEX': [
+        [0x26],
+        [0x16]
+    ]
+}, {
+    'NAME': "B_TRANSFORM",
+    'ID': 0x29,
+    'INDEX': [
+        [0x2e],
+        [0x1e]
+    ]
+}, {
+    'NAME': "F_STAND",
+    'ID': 0x40,
+    'INDEX': [
+        [0x4c, 0x4b],
+        [0x3c, 0x3b]
+    ]
+}, {
+    'NAME': "F_TAUNT",
+    'ID': 0x51,
+    'INDEX': [
+        [34, 33],
+        [18, 17]
+    ]
+}, {
+    'NAME': "F_DOWN",
+    'ID': 0x41,
+    'INDEX': [
+        [0x4a],
+        [0x3a]
+    ]
+}, {
+    'NAME': "F_RUN0",
+    'ID': 0x42,
+    'INDEX': [
+        [0x45, 0x44],
+        [0x35, 0x34]
+    ]
+}, {
+    'NAME': "F_RUN1",
+    'ID': 0x43,
+    'INDEX': [
+        [0x47, 0x46],
+        [0x37, 0x36]
+    ]
+}, {
+    'NAME': "F_RUN2",
+    'ID': 0x44,
+    'INDEX': [
+        [0x49, 0x48],
+        [0x39, 0x38]
+    ]
+}, {
+    'NAME': "F_SLIDE",
+    'ID': 0x45,
+    'INDEX': [
+        [0x43, 0x42],
+        [0x33, 0x32]
+    ]
+}, {
+    'NAME': "F_FALL",
+    'ID': 0x46,
+    'INDEX': [
+        [0x41, 0x40],
+        [0x31, 0x30]
+    ]
+}, {
+    'NAME': "F_SWIM0",
+    'ID': 0x52,
+    'INDEX': [
+        [159, 158],
+        [143, 142]
+    ]
+}, {
+    'NAME': "F_SWIM1",
+    'ID': 0x53,
+    'INDEX': [
+        [157, 156],
+        [141, 140]
+    ]
+}, {
+    'NAME': "F_SWIM2",
+    'ID': 0x54,
+    'INDEX': [
+        [155, 154],
+        [139, 138]
+    ]
+}, {
+    'NAME': "F_SWIM3",
+    'ID': 0x55,
+    'INDEX': [
+        [153, 152],
+        [137, 136]
+    ]
+}, {
+    'NAME': "F_SWIM4",
+    'ID': 0x56,
+    'INDEX': [
+        [151, 150],
+        [135, 134]
+    ]
+}, {
+    'NAME': "F_SWIM5",
+    'ID': 0x57,
+    'INDEX': [
+        [149, 148],
+        [133, 132]
+    ]
+}, {
+    'NAME': "F_CLIMB0",
+    'ID': 0x47,
+    'INDEX': [
+        [0x23],
+        [0x13]
+    ]
+}, {
+    'NAME': "F_CLIMB1",
+    'ID': 0x48,
+    'INDEX': [
+        [0x24],
+        [0x14]
+    ]
+}, {
+    'NAME': "F_ATTACK",
+    'ID': 0x49,
+    'INDEX': [
+        [0x4f, 0x4e],
+        [0x3f, 0x3e]
+    ]
+}, {
+    'NAME': "F_TRANSFORM",
+    'ID': 0x50,
+    'INDEX': [
+        [0x4d],
+        [0x3d]
+    ]
+}, {
+    'NAME': "G_DEAD",
+    'ID': 0x60,
+    'INDEX': 0x0
+}, {
+    'NAME': "G_HIDE",
+    'ID': 0x70,
+    'INDEX': 0xe
+}];
+for (var i=0; i<PlayerObject.SPRITE_LIST.length; i++) PlayerObject.SPRITE[PlayerObject.SPRITE_LIST[i].NAME] = PlayerObject.SPRITE_LIST[i], PlayerObject.SPRITE[PlayerObject.SPRITE_LIST[i].ID] = PlayerObject.SPRITE_LIST[i];
+PlayerObject.SNAME = {};
+PlayerObject.SNAME.STAND = "STAND";
+PlayerObject.SNAME.TAUNT = "TAUNT";
+PlayerObject.SNAME.DOWN = "DOWN";
+PlayerObject.SNAME.CROUCHJUMP = "CROUCHJUMP";
+PlayerObject.SNAME.RUN = "RUN";
+PlayerObject.SNAME.SLIDE = "SLIDE";
+PlayerObject.SNAME.FALL = "FALL";
+PlayerObject.SNAME.SWIM = "SWIM";
+PlayerObject.SNAME.SWIMFALL = "SWIMFALL";
+PlayerObject.SNAME.POLE = "POLE";
+PlayerObject.SNAME.CLIMB = "CLIMB";
+PlayerObject.SNAME.ATTACK = "ATTACK";
+PlayerObject.SNAME.TRANSFORM = "TRANSFORM";
+PlayerObject.SNAME.DEAD = "DEAD";
+PlayerObject.SNAME.HIDE = "HIDE";
+PlayerObject.SNAME.GHOST = "GHOST";
+PlayerObject.SNAME.DEADGHOST = "DEADGHOST";
+PlayerObject.HideSprite = 0x70;
+var DIM0 = vec2.make(0.7, 0.95), // small
+    DIM1 = vec2.make(0.7, 1.9), // big
+    DIM2 = vec2.make(0.9, 0.8); // crouch jump
+PlayerObject.STATE = [{
+    'NAME': PlayerObject.SNAME.STAND,
+    'ID': 0x0,
+    'DIM': DIM0,
+    'SPRITE': [PlayerObject.SPRITE.S_STAND]
+}, {
+    'NAME': PlayerObject.SNAME.TAUNT,
+    'ID': 0x8,
+    'DIM': DIM0,
+    'SPRITE': [PlayerObject.SPRITE.S_TAUNT]
+}, {
+    'NAME': PlayerObject.SNAME.DOWN,
+    'ID': 0x1,
+    'DIM': DIM0,
+    'SPRITE': [PlayerObject.SPRITE.S_STAND]
+}, {
+    'NAME': PlayerObject.SNAME.RUN,
+    'ID': 0x2,
+    'DIM': DIM0,
+    'SPRITE': [PlayerObject.SPRITE.S_RUN2, PlayerObject.SPRITE.S_RUN1, PlayerObject.SPRITE.S_RUN0]
+}, {
+    'NAME': PlayerObject.SNAME.SLIDE,
+    'ID': 0x3,
+    'DIM': DIM0,
+    'SPRITE': [PlayerObject.SPRITE.S_SLIDE]
+}, {
+    'NAME': PlayerObject.SNAME.FALL,
+    'ID': 0x4,
+    'DIM': DIM0,
+    'SPRITE': [PlayerObject.SPRITE.S_FALL]
+}, {
+    'NAME': PlayerObject.SNAME.SWIMFALL,
+    'ID': 0x9,
+    'DIM': DIM0,
+    'SPRITE': []
+}, {
+    'NAME': PlayerObject.SNAME.TRANSFORM,
+    'ID': 0x5,
+    'DIM': DIM0,
+    'SPRITE': [PlayerObject.SPRITE.S_STAND]
+}, {
+    'NAME': PlayerObject.SNAME.POLE,
+    'ID': 0x6,
+    'DIM': DIM0,
+    'SPRITE': [PlayerObject.SPRITE.S_CLIMB1]
+}, {
+    'NAME': PlayerObject.SNAME.CLIMB,
+    'ID': 0x7,
+    'DIM': DIM0,
+    'SPRITE': [PlayerObject.SPRITE.S_CLIMB0, PlayerObject.SPRITE.S_CLIMB1]
+}, {
+    'NAME': PlayerObject.SNAME.CROUCHJUMP,
+    'ID': 0x9,
+    'DIM': DIM2,
+    'SPRITE': [PlayerObject.SPRITE.S_FALL]
+}, {
+    'NAME': PlayerObject.SNAME.STAND,
+    'ID': 0x20,
+    'DIM': DIM1,
+    'SPRITE': [PlayerObject.SPRITE.B_STAND]
+}, {
+    'NAME': PlayerObject.SNAME.TAUNT,
+    'ID': 0x2a,
+    'DIM': DIM1,
+    'SPRITE': [PlayerObject.SPRITE.B_TAUNT]
+}, {
+    'NAME': PlayerObject.SNAME.DOWN,
+    'ID': 0x21,
+    'DIM': DIM0,
+    'SPRITE': [PlayerObject.SPRITE.B_DOWN]
+}, {
+    'NAME': PlayerObject.SNAME.RUN,
+    'ID': 0x22,
+    'DIM': DIM1,
+    'SPRITE': [PlayerObject.SPRITE.B_RUN2, PlayerObject.SPRITE.B_RUN1, PlayerObject.SPRITE.B_RUN0]
+}, {
+    'NAME': PlayerObject.SNAME.SLIDE,
+    'ID': 0x23,
+    'DIM': DIM1,
+    'SPRITE': [PlayerObject.SPRITE.B_SLIDE]
+}, {
+    'NAME': PlayerObject.SNAME.FALL,
+    'ID': 0x24,
+    'DIM': DIM1,
+    'SPRITE': [PlayerObject.SPRITE.B_FALL]
+}, {
+    'NAME': PlayerObject.SNAME.TRANSFORM,
+    'ID': 0x25,
+    'DIM': DIM0,
+    'SPRITE': [PlayerObject.SPRITE.B_TRANSFORM]
+}, {
+    'NAME': PlayerObject.SNAME.POLE,
+    'ID': 0x26,
+    'DIM': DIM1,
+    'SPRITE': [PlayerObject.SPRITE.B_CLIMB0]
+}, {
+    'NAME': PlayerObject.SNAME.CLIMB,
+    'ID': 0x27,
+    'DIM': DIM1,
+    'SPRITE': [PlayerObject.SPRITE.B_CLIMB0, PlayerObject.SPRITE.B_CLIMB1]
+}, {
+    'NAME': PlayerObject.SNAME.CROUCHJUMP,
+    'ID': 0x29,
+    'DIM': DIM0,
+    'SPRITE': [PlayerObject.SPRITE.B_DOWN]
+}, {
+    'NAME': PlayerObject.SNAME.STAND,
+    'ID': 0x40,
+    'DIM': DIM1,
+    'SPRITE': [PlayerObject.SPRITE.F_STAND]
+}, {
+    'NAME': PlayerObject.SNAME.TAUNT,
+    'ID': 0x49,
+    'DIM': DIM1,
+    'SPRITE': [PlayerObject.SPRITE.F_TAUNT]
+}, {
+    'NAME': PlayerObject.SNAME.DOWN,
+    'ID': 0x41,
+    'DIM': DIM0,
+    'SPRITE': [PlayerObject.SPRITE.F_DOWN]
+}, {
+    'NAME': PlayerObject.SNAME.RUN,
+    'ID': 0x42,
+    'DIM': DIM1,
+    'SPRITE': [PlayerObject.SPRITE.F_RUN2, PlayerObject.SPRITE.F_RUN1, PlayerObject.SPRITE.F_RUN0]
+}, {
+    'NAME': PlayerObject.SNAME.SLIDE,
+    'ID': 0x43,
+    'DIM': DIM1,
+    'SPRITE': [PlayerObject.SPRITE.F_SLIDE]
+}, {
+    'NAME': PlayerObject.SNAME.FALL,
+    'ID': 0x44,
+    'DIM': DIM1,
+    'SPRITE': [PlayerObject.SPRITE.F_FALL]
+}, {
+    'NAME': PlayerObject.SNAME.ATTACK,
+    'ID': 0x45,
+    'DIM': DIM1,
+    'SPRITE': [PlayerObject.SPRITE.F_ATTACK]
+}, {
+    'NAME': PlayerObject.SNAME.TRANSFORM,
+    'ID': 0x46,
+    'DIM': DIM0,
+    'SPRITE': [PlayerObject.SPRITE.F_TRANSFORM]
+}, {
+    'NAME': PlayerObject.SNAME.POLE,
+    'ID': 0x47,
+    'DIM': DIM1,
+    'SPRITE': [PlayerObject.SPRITE.F_CLIMB0]
+}, {
+    'NAME': PlayerObject.SNAME.CLIMB,
+    'ID': 0x48,
+    'DIM': DIM1,
+    'SPRITE': [PlayerObject.SPRITE.F_CLIMB0, PlayerObject.SPRITE.F_CLIMB1]
+}, {
+    'NAME': PlayerObject.SNAME.CROUCHJUMP,
+    'ID': 0x4a,
+    'DIM': DIM0,
+    'SPRITE': [PlayerObject.SPRITE.F_DOWN]
+}, {
+    'NAME': PlayerObject.SNAME.DEAD,
+    'DIM': DIM0,
+    'ID': 0x60,
+    'SPRITE': [PlayerObject.SPRITE.G_DEAD]
+}, {
+    'NAME': PlayerObject.SNAME.HIDE,
+    'DIM': DIM0,
+    'ID': PlayerObject.HideSprite,
+    'SPRITE': [PlayerObject.SPRITE.G_HIDE]
+}, {
+    'NAME': PlayerObject.SNAME.GHOST,
+    'DIM': DIM0,
+    'ID': 0xff,
+    'SPRITE': []
+}, {
+    'NAME': PlayerObject.SNAME.DEADGHOST,
+    'DIM': DIM0,
+    'ID': 0xfe,
+    'SPRITE': [PlayerObject.SPRITE.G_DEAD]
+}];
+PlayerObject.prototype.update = function (data) {
+    if (!(this.dead || this.garbage)) {
+        this.setState(data.sprite == PlayerObject.HideSprite ? PlayerObject.SNAME.HIDE : PlayerObject.SNAME.GHOST);
+        this.level = data.level;
+        this.zone = data.zone;
+        this.pos = data.pos;
+        this.sprite = PlayerObject.SPRITE[data.sprite];
+        this.reverse = data.reverse;
+        this.spectator = data.spectator;
+        this.lives = data.lives;
+    }
+};
+PlayerObject.prototype.spectate = function () {
+    this.game.lives = -1;
+    this.setState(PlayerObject.SNAME.HIDE);
+
+    var queue = this.game.getAlivePlayers();
+    if (this.game.spectatorID === undefined) this.game.spectatorID = queue[0];
+    this.spectator = true;
+
+    DIM0 = vec2.make(0x0, 0x0);
+    DIM1 = vec2.make(0x0, 0x0);
+    this.dim = vec2.make(0x0, 0x0);
+};
+PlayerObject.prototype.trigger = function (_0x121f75) {
+    if (this.spectator) return;
+
+    switch (_0x121f75) {
+        case 0x1:
+            this.attack();
+            break;
+        case 0x2:
+            this.star();
+    }
+};
+PlayerObject.prototype.step = function () {
+    if(this.pid !== this.game.pid && this.followPlayer)
+    {
+        var p = this.game.getPlayer();
+        if(p && p.level == this.level && p.zone == this.zone) {
+            this.autoTarget = this.game.getPlayer().pos;
+        } else {
+            this.autoTarget = undefined;
+        }
+    }
+    0x0 < this.starTimer && (this.starTimer--, 20 < this.starTimer || (this.starMusic && (this.starMusic.stop(), this.starMusic = undefined)));
+    if (this.isState(PlayerObject.SNAME.GHOST)) this.sound();
+    else if (!this.isState(PlayerObject.SNAME.HIDE) || !this.spectator)
+        if (this.isState(PlayerObject.SNAME.POLE))
+            if (0x0 < this.poleTimer && !this.poleWait) this.poleTimer--;
+            else {
+                this.poleSound || (this.poleSound = true, this.play("flagpole.mp3", 0x1, 0x0));
+                if (!this.poleWait)
+                    if (0x0 >= this.poleTimer && this.autoTarget) this.setState(PlayerObject.SNAME.STAND);
+                    else {
+                        var _0x4d4e5b = vec2.add(this.pos, vec2.make(0x0, -0.25));
+                        var _0x280236 = vec2.make(this.pos.x, this.pos.y - 0.25);
+                        var _0x191ffc = vec2.make(this.dim.x, this.dim.y + 0.25);
+                        var _0x280236 = this.game.world.getZone(this.level, this.zone).getTiles(_0x280236, _0x191ffc);
+                        var _0x191ffc = vec2.make(0x1, 0x1);
+                        var halfTile = vec2.make(0x1, 0.5);
+                        var collided = false;
+                        for (var i = 0x0; i < _0x280236.length; i++) {
+                            var tile = _0x280236[i];
+                            var tileHitbox = tile.definition.HALF === true ? halfTile : _0x191ffc;
+                            if (squar.intersection(tile.pos, tileHitbox, _0x4d4e5b, this.dim) && tile.definition.COLLIDE) {
+                                collided = true;
+                                break;
+                            }
+                        }
+                        collided ? (this.poleTimer = 0xf, this.autoTarget = vec2.add(_0x4d4e5b, PlayerObject.LEVEL_END_MOVE_OFF), this.poleWait = true, this.autoTargetType = 1) : this.pos = _0x4d4e5b;
+                    } _0x4d4e5b = this.game.getFlag(this.level, this.zone);
+                _0x4d4e5b.pos.y - 0.25 >= this.pos.y ? _0x4d4e5b.pos.y -= 0.25 : (_0x4d4e5b.pos.y = this.pos.y, this.poleWait = false);
+            }
+        else if (this.isState(PlayerObject.SNAME.RUN) ? this.anim += Math.max(0.5, Math.abs(0x5 * this.moveSpeed)) : this.anim++, this.sprite = this.state.SPRITE[parseInt(parseInt(this.anim) / PlayerObject.ANIMATION_RATE) % this.state.SPRITE.length], this.isState(PlayerObject.SNAME.CLIMB)) this.pos.y += PlayerObject.CLIMB_SPEED, this.pos.y >= this.game.world.getZone(this.level, this.zone).dimensions().y && (this.warp(this.vineWarp), this.setState(PlayerObject.SNAME.FALL));
+        else if (this.isState(PlayerObject.SNAME.DEAD) || this.isState(PlayerObject.SNAME.DEADGHOST)) 0x0 < this.deadFreezeTimer ? this.deadFreezeTimer-- : 0x0 < this.deadTimer ? (this.deadTimer--, this.pos.y += this.fallSpeed, this.fallSpeed = Math.max(this.fallSpeed - 0.06, -0.3)) : this.destroy();
+        else if (this.isState(PlayerObject.SNAME.TRANSFORM))
+            if (0x0 < --this.tfmTimer) switch (_0x4d4e5b = parseInt(this.anim / PlayerObject.TRANSFORM_ANIMATION_RATE) % 0x3, _0x280236 = this.power > this.tfmTarget ? this.power : this.tfmTarget, _0x4d4e5b) {
+                case 0x0:
+                    this.sprite = this.getStateByPowerIndex(PlayerObject.SNAME.STAND, this.power).SPRITE[0x0];
+                    break;
+                case 0x1:
+                    this.sprite = this.getStateByPowerIndex(PlayerObject.SNAME.TRANSFORM, _0x280236).SPRITE[0x0];
+                    break;
+                case 0x2:
+                    this.sprite = this.getStateByPowerIndex(PlayerObject.SNAME.STAND, this.tfmTarget).SPRITE[0x0];
+            } else this.power = this.tfmTarget, this.tfmTarget = -0x1, this.setState(PlayerObject.SNAME.STAND), this.collisionTest(this.pos, this.dim) && this.setState(PlayerObject.SNAME.DOWN), this.damageTimer = (app.net.gameMode === 1 ? 120 : PlayerObject.DAMAGE_TIME);
+        else if (0x0 < this.pipeDelay) this.pipeDelay--;
+        else if (0x0 < this.pipeTimer && 0x0 >= this.pipeDelay) {
+            0x1e <= this.pipeTimer && this.play("pipe.mp3", 0x1, 0.04);
+            switch (this.pipeDir) {
+                case 0x1:
+                    this.pos.y += 0.06;
+                    break;
+                case 0x2:
+                    this.pos.y -= 0.06;
+                    break;
+                case 0x3:
+                    this.pos.x -= 0.06;
+                    break;
+                case 0x4:
+                    this.pos.x += 0.06;
+            }
+            0x1 === --this.pipeTimer && this.pipeWarp && (this.pipeDelay = this.pipeDelayLength);
+            if (0x0 >= this.pipeTimer && this.pipeWarp) {
+                this.warp(this.pipeWarp);
+                this.weedeat();
+                this.pipeWarp = undefined;
+                switch (this.pipeExt) {
+                    case 0x1:
+                        this.pos.y -= 1.74;
+                        this.setState(PlayerObject.SNAME.STAND);
+                        this.pos = vec2.add(this.pos, PlayerObject.PIPE_EXT_OFFSET);
+                        break;
+                    case 0x2:
+                        this.pos.y += 1.74;
+                        this.setState(PlayerObject.SNAME.STAND);
+                        this.pos = vec2.add(this.pos, PlayerObject.PIPE_EXT_OFFSET);
+                        break;
+                    case 0x3:
+                        this.pos.x -= 1.74;
+                        this.setState(PlayerObject.SNAME.RUN);
+                        this.reverse = false;
+                        break;
+                    case 0x4:
+                        this.pos.x += 1.74;
+                        this.setState(PlayerObject.SNAME.RUN);
+                        this.reverse = true;
+                        break;
+                    case 0x5:
+                        this.pos.y -= 1.74;
+                        this.setState(PlayerObject.SNAME.STAND);
+                        break;
+                    case 0x06:
+                        this.pos.y += 1.74;
+                        this.setState(PlayerObject.SNAME.STAND);
+                        break;
+                    default:
+                        return;
+                }
+                this.pipeTimer = 0x1e;
+                this.pipeDir = this.pipeExt;
+                this.pipeDelay = this.pipeDelayLength;
+            }
+        } else this.lastPos = this.pos, 0x0 < this.damageTimer && this.damageTimer--, this.attackCharge < PlayerObject.MAX_CHARGE && this.attackCharge++, 0x0 < this.attackTimer && this.attackTimer--, this.autoTarget && this.autoMove(), this.control(), this.physics(), this.interaction(), this.arrow(), this.sound(), 0x0 > this.pos.y && this.kill();
+        if (this.underWater === 1 && !this.grounded && this.isState(PlayerObject.SNAME.FALL)) {
+            if (!this.power) { if (this.swimspr + 1 > 4) this.swimspr = 0; } else { if (this.swimspr + 1 > 5) this.swimspr = 0; }
+            if (this.game.frame % 3 === 2) this.swimspr += 1;
+    
+            var spr = this.swimspr;
+            var pref = () => { if (this.power === 0) return "S_"; else if (this.power === 1) return "B_"; else if (this.power === 2) return "F_" }
+            if (PlayerObject.SPRITE[pref() + "SWIM" + spr]) {
+                this.sprite = PlayerObject.SPRITE[pref() + "SWIM" + spr];
+            }
+        }    
+
+    if(this.pos.x === NaN || this.pos.y === NaN) { this.pos = vec2.make(0, 0); }
+};
+PlayerObject.prototype.input = function (abtnD, abtnA, abtnB, abtnTA, abtnU) {
+    this.btnD = abtnD;
+    if (app.autoMove && this.btnD[0] == 0) this.btnD[0] = 1;
+    this.btnA = abtnA;
+    this.btnB = abtnB;
+    if(abtnU && !this.btnU && this.moveSpeed == 0 && this.grounded && !this.isState(PlayerObject.SNAME.DOWN)) {
+        this.play((this.pid === this.game.pid && app.charMusic && this.skin in SKIN_SFX_URL ? SKIN_SFX_URL[this.skin] : "") + "taunt.mp3", 0x1, 0.04);
+    }
+    this.btnU = abtnU;
+    if (abtnTA) {
+        this.btnA = true;
+        this.btnAHot = false;
+    }
+};
+PlayerObject.prototype.autoMove = function () {
+    this.btnD[0x0] = 0x0;
+    this.btnB = this.btnA = false;
+    if(this.followPlayer && this.game.getPlayer()) {
+        if(vec2.distance(this.pos, this.game.getPlayer().pos) >= 6) {
+            this.btnB = true;
+        }
+    }
+    if(this.collidingAgainstWall)
+    {
+        this.btnA = true;
+    }
+    0.1 <= Math.abs(this.pos.x - this.autoTarget.x) ? this.btnD = [0x0 >= this.pos.x - this.autoTarget.x ? 0x1 : -0x1, 0x0] : 0.01 > Math.abs(this.moveSpeed) && (this.btnA = -0.5 > this.pos.y - this.autoTarget.y);
+};
+
+PlayerObject.prototype.control = function () {
+    if (document.activeElement.tagName === 'INPUT') {
+        if (this.autoTarget) {
+            this.autoMove()
+        } else {
+            this.btnD = [0x0, 0x0];
+            this.btnA = false;
+            this.btnB = false;
+            this.btnBg = false;
+            this.btnBde = false;
+            this.btnU = false;
+        };
+
+    }
+    if (this.isState(PlayerObject.SNAME.HIDE) || this.spectator) return;
+    if (this.grounded) {
+        this.btnBg = this.btnB;
+        this.springJump = 0;
+    }
+    if (this.isState(PlayerObject.SNAME.DOWN) && this.collisionTest(this.pos, this.getStateByPowerIndex(PlayerObject.SNAME.STAND, this.power).DIM)) {
+        if (- 0x1 !== this.btnD[0x1] && !this.btnA) this.moveSpeed = 0.5 * (this.moveSpeed + PlayerObject.STUCK_SLIDE_SPEED);
+        if (this.btnA) {
+            if ((this.grounded || this.underWater) && !this.btnAHot) {
+                this.jumping = 0;
+                // this.springJump = 0;
+                this.play(this.underWater ? "swim.mp3" : 0x0 < this.power ? "jump1.mp3" : "jump0.mp3", 0.7, 0.04);
+                this.btnAHot = true;
+            }
+        };
+        this.moveSpeed = Math.sign(this.moveSpeed) * Math.max(Math.abs(this.moveSpeed) - PlayerObject.MOVE_SPEED_DECEL, 0x0);
+        return;
+    } else {
+        if (0x0 !== this.btnD[0x0]) {
+            if (0.01 < Math.abs(this.moveSpeed) && !(0x0 <= this.btnD[0x0] ^ 0x0 > this.moveSpeed)) {
+                this.moveSpeed += PlayerObject.MOVE_SPEED_DECEL * this.btnD[0x0];
+                this.setState(PlayerObject.SNAME.SLIDE);
+            } else {
+                this.moveSpeed = this.btnD[0x0] * Math.min(Math.abs(this.moveSpeed) + 0.0125, this.underWater ? 0.200 : this.btnBg ? PlayerObject.RUN_SPEED_MAX : PlayerObject.MOVE_SPEED_MAX);
+                this.setState(PlayerObject.SNAME.RUN);
+            }
+            if (this.grounded || this.underWater) this.reverse = 0x0 <= this.btnD[0x0];
+        } else {
+            if (!this.underWater || this.grounded) { //decelerate when not holding a button
+                if (0.01 < Math.abs(this.moveSpeed)) {
+                    this.moveSpeed = Math.sign(this.moveSpeed) * Math.max(Math.abs(this.moveSpeed) - PlayerObject.MOVE_SPEED_DECEL, 0x0);
+                    this.setState(PlayerObject.SNAME.RUN);
+                } else {
+                    this.moveSpeed = 0x0, this.setState(PlayerObject.SNAME.STAND);
+                }
+                if (-0x1 === this.btnD[0x1]) this.setState(PlayerObject.SNAME.DOWN);
+            }
+        }
+        var jumpMax = this.springJump === 2 ? 190 : this.springJump === 1 ? 19 : this.underWater == 1 ? 0.1 : 7;
+        var jumpMin = this.isSpring ? PlayerObject.SPRING_LENGTH_MIN : this.isBounce ? PlayerObject.BOUNCE_LENGTH_MIN : PlayerObject.JUMP_LENGTH_MIN;
+        for (i = 0; i < PlayerObject.JUMP_SPEED_INC_THRESHOLD.length && Math.abs(this.moveSpeed) >= PlayerObject.JUMP_SPEED_INC_THRESHOLD[i]; i++) jumpMax++;
+        if (this.btnA) {
+            if ((this.grounded || this.underWater) && !this.btnAHot) {
+                this.jumping = 0;
+                this.springJump = 0;
+                this.play(this.underWater ? "swim.mp3" : 0x0 < this.power ? (this.pid === this.game.pid && app.charMusic && this.skin in SKIN_SFX_URL ? SKIN_SFX_URL[this.skin] : "") + "jump1.mp3" : (this.pid === this.game.pid && app.charMusic && this.skin in SKIN_SFX_URL ? SKIN_SFX_URL[this.skin] : "") + "jump0.mp3", 0.7, 0.04);
+                this.btnAHot = true;
+            }
+            if (this.jumping > jumpMax) this.jumping = -1;
+        } else {
+            this.btnAHot = false;
+            if (this.jumping > jumpMin) this.jumping = -1;
+        }
+
+        if (this.btnU && this.grounded && this.moveSpeed === 0 && !this.isState(PlayerObject.SNAME.DOWN)) { // make sure holding up button, while grounded, while completely still and not crouching
+            this.setState(PlayerObject.SNAME.TAUNT);
+        }
+
+        if (this.moveSpeed > 0.250 || this.moveSpeed < -0.250) {
+            if (DIM0.x || DIM1.x == 1) {
+                DIM0.x = 1; // increase small hitbox
+                DIM1.x = 1; // increase big hitbox
+            }
+        } else {
+            if (DIM0.x || DIM1.x !== 1) {
+                DIM0.x = 0.7; // reset small hitbox
+                DIM1.x = 0.7; // reset big hitbox
+            }
+        }
+
+        this.grounded || this.setState(PlayerObject.SNAME.FALL);
+        this.btnB && !this.btnBde && 0x2 === this.power && !this.isState(PlayerObject.SNAME.DOWN) && !this.isState(PlayerObject.SNAME.TAUNT) && !this.isState(PlayerObject.SNAME.SLIDE) && 0x1 > this.attackTimer && this.attackCharge >= PlayerObject.ATTACK_CHARGE && (this.attack(), this.game.out.push(NET013.encode(0x1)));
+        this.btnBde = this.btnB;
+        0x0 < this.attackTimer && 0x2 === this.power && (this.isState(PlayerObject.SNAME.STAND) || this.isState(PlayerObject.SNAME.RUN)) && this.setState(PlayerObject.SNAME.ATTACK);
+    }
+};
+
+PlayerObject.prototype.physics = function () {
+    if (-0x1 !== this.jumping && !(this.game.levelWarpTimer > 0)) {
+        this.fallSpeed = (this.underWater == 1 ? PlayerObject.SWIM_FALL_SPEED_MAX : PlayerObject.FALL_SPEED_MAX) - 0.005 * this.jumping;
+        this.jumping++;
+        this.grounded = false;
+    } else {
+        this.isSpring = this.isBounce = false;
+        if (this.grounded) this.fallSpeed = 0x0;
+        this.fallSpeed = Math.max(this.fallSpeed + (this.underWater == 1 ? -0.03 : -PlayerObject.FALL_SPEED_ACCEL), -PlayerObject.FALL_SPEED_MAX);
+    }
+    var newPos = vec2.add(this.pos, vec2.make(this.moveSpeed, this.fallSpeed));
+    var tilePosMin = vec2.make(this.pos.x + Math.min(0x0, this.moveSpeed), this.pos.y + Math.min(0x0, this.fallSpeed));
+    var tilePosMax = vec2.make(this.dim.x + Math.max(0x0, this.moveSpeed), this.dim.y + Math.max(0x0, this.fallSpeed));
+    var tiles = this.game.world.getZone(this.level, this.zone).getTiles(tilePosMin, tilePosMax);
+    var plats = this.game.getPlatforms();
+    var oneByOne = vec2.make(0x1, 0x1);
+    var oneByHalf = vec2.make(0x1, 0.5);
+    var grounded = false;
+    var tilePlatform = [];
+    var tilePlatformColliding = [];
+    var tileHalf = [];
+    var tileHalfColliding = [];
+    var tileSlope = [];
+    var tileSlopeColliding = [];
+    var _0x27521c = [];
+    var standingOn = [];
+    var _0x346d1d = [];
+    var _0x50b7b9 = [];
+    var _0x535e81 = [];
+    var plat;
+    var newUnderWater = 0;
+    var waterCurrentA = 0;
+    var waterCurrentB = 0;
+    for (i = 0x0; i < tiles.length; i++) {
+        var obj = tiles[i];
+        if (obj.definition.ENEMY) { continue; }
+        if (obj.definition.PLATFORM) tilePlatform.push(obj);
+	else if (obj.definition.SLOPE) tileSlope.push(obj);
+        else if (obj.definition.COLLIDE || obj.definition.PLAYER)
+            if (obj.definition.HIDDEN) _0x27521c.push(obj);
+            else if (squar.intersection(obj.pos, oneByOne, newPos, this.dim) || squar.intersection(obj.pos, oneByOne, this.pos, this.dim)) 0.01 < Math.abs(this.moveSpeed) && this.grounded && this.pos.y <= obj.pos.y && _0x346d1d.push(obj), _0x27521c.push(obj);
+        if (obj.definition.WATER == 2 && newUnderWater == 0) newUnderWater = 2;
+        else if (obj.definition.WATER == 1) {
+            newUnderWater = 1;
+            if (obj.definition.WATER_CURRENT && squar.intersection(obj.pos, oneByOne, newPos, this.dim)) {
+                var d = obj.data;
+                if (d < 128) waterCurrentA = Math.min(waterCurrentA, d - 128);
+                if (d >= 128) waterCurrentB = Math.max(waterCurrentB, d - 127);
+            }
+        }
+    }
+    var waterCurrent = (waterCurrentA + waterCurrentB) * 0.0025;
+    newPos = vec2.add(newPos, vec2.make(waterCurrent, 0));
+    this.underWater = newUnderWater;
+    for (_0x5b32b0 = 0x0; _0x5b32b0 < plats.length; _0x5b32b0++) obj = plats[_0x5b32b0], squar.intersection(obj.pos, obj.dim, newPos, this.dim) && _0x535e81.push(obj);
+    for (_0x5b32b0 = 0x0; _0x5b32b0 < tilePlatform.length; _0x5b32b0++) obj = tilePlatform[_0x5b32b0], squar.intersection(obj.pos, oneByOne, newPos, this.dim) && tilePlatformColliding.push(obj);
+    for (_0x5b32b0 = 0x0; _0x5b32b0 < tileSlope.length; _0x5b32b0++) obj = tileSlope[_0x5b32b0], squar.intersection(obj.pos, oneByOne, newPos, this.dim) && tileSlopeColliding.push(obj);
+    plats = vec2.make(newPos.x, this.pos.y);
+    var collidingAgainstWall = false;
+    for (_0x5b32b0 = 0x0; _0x5b32b0 < _0x27521c.length; _0x5b32b0++) {
+        obj = _0x27521c[_0x5b32b0];
+        var tileHitbox = obj.definition.HALF === true ? oneByHalf : oneByOne;
+        if (!obj.definition.HIDDEN && squar.intersection(obj.pos, tileHitbox, plats, this.dim)) {
+            obj.definition.TRIGGER(this.game, this.pid, obj, this.level, this.zone, obj.pos.x, obj.pos.y, td32.TRIGGER.TYPE.TOUCH);
+            plats.x = plats.x + 0.5 * this.dim.x < obj.pos.x + 0.5 * tileHitbox.x ? obj.pos.x - this.dim.x : obj.pos.x + tileHitbox.x;
+            this.moveSpeed *= 0.33;
+            collidingAgainstWall = true;
+        }
+    }
+    this.collidingAgainstWall = collidingAgainstWall;
+    newPos.x = plats.x;
+    for (_0x5b32b0 = 0x0; _0x5b32b0 < _0x27521c.length; _0x5b32b0++) {
+        obj = _0x27521c[_0x5b32b0];
+        var tileHitbox = obj.definition.HALF === true ? oneByHalf : oneByOne;
+        if (squar.intersection(obj.pos, tileHitbox, newPos, this.dim)) {
+            if (this.fallSpeed > PlayerObject.BLOCK_BUMP_THRESHOLD) { _0x50b7b9.push(obj); }
+            if (0x0 > this.fallSpeed && this.pos.y >= obj.pos.y) { standingOn.push(obj); }
+        }
+    }
+    for (_0x5b32b0 = 0x0; _0x5b32b0 < _0x27521c.length; _0x5b32b0++) {
+        obj = _0x27521c[_0x5b32b0];
+        var tileHitbox = obj.definition.HALF === true ? oneByHalf : oneByOne;
+        if (squar.intersection(obj.pos, tileHitbox, newPos, this.dim)) {
+            obj.definition.TRIGGER(this.game, this.pid, obj, this.level, this.zone, obj.pos.x, obj.pos.y, td32.TRIGGER.TYPE.TOUCH);
+            if (this.pos.y >= newPos.y) {
+                if (!obj.definition.HIDDEN) {
+                    newPos.y = obj.pos.y + tileHitbox.y;
+                    this.fallSpeed = 0x0;
+                    grounded = true;
+                }
+            }
+            else {
+                newPos.y = obj.pos.y - this.dim.y;
+                this.fallSpeed = 0;
+            }
+        }
+    }
+    for (_0x5b32b0 = 0x0; _0x5b32b0 < _0x535e81.length; _0x5b32b0++)
+        if (obj = _0x535e81[_0x5b32b0], this.pos.y >= newPos.y && obj.pos.y + obj.dim.y - this.pos.y < PlayerObject.PLATFORM_SNAP_DIST) {
+            newPos.y = obj.pos.y + obj.dim.y;
+            grounded = true;
+            plat = obj;
+            break;
+        }
+	/* HERE IT IS, THE CODE THAT CHECKS FOR SEMISOLID COLLISIONS! */
+    for (_0x5b32b0 = 0x0; _0x5b32b0 < tilePlatformColliding.length; _0x5b32b0++) {
+        obj = tilePlatformColliding[_0x5b32b0];
+        var tileHitbox = obj.definition.HALF === true ? oneByHalf : oneByOne;
+        if (squar.intersection(obj.pos, tileHitbox, newPos, this.dim)) {
+            if (this.pos.y - (obj.definition.PLATFORM && obj.definition.PLATFORM === "WEAK" ? this.dim : tileHitbox).y >= obj.pos.y) {
+                newPos.y = obj.pos.y + tileHitbox.y;
+                this.fallSpeed = 0x0;
+                grounded = true;
+            }
+            else if (this.pos.y - (obj.definition.PLATFORM && obj.definition.PLATFORM === "ICE" ? this.dim : tileHitbox).y >= obj.pos.y) {
+                grounded = true;
+                PlayerObject.MOVE_SPEED_ACCEL = 1
+                PlayerObject.MOVE_SPEED_ACCEL_AIR = 1
+                PlayerObject.MOVE_SPEED_DECEL = 0.0125
+                PlayerObject.ANIMATION_RATE = 1
+            }
+        }
+    }
+
+	/* EPIC CODE MOMENTS IN HISTORY!!!!!!!!!!! PYRIEL, VERSUSSSSSSSSSSSSSSS (sus) CODING SLOPES,,,,,,,,,,,,, BE-GIN */
+
+    for (_0x5b32b0 = 0x0; _0x5b32b0 < tileSlopeColliding.length; _0x5b32b0++) {
+        slope = tileSlopeColliding[_0x5b32b0];
+        var tileHitbox = oneByOne;
+        if (squar.intersection(slope.pos, tdim, newPos, this.dim)) {
+            if (this.pos.y <= movy.y && movy.y + this.dim.y > slope.pos.y) { // Here, you may or may not take account off the tile's hitbox Y size
+		newPos.y = tile.pos.y - this.dim.y;
+                this.fallSpeed = 0x0;
+            }
+	    if(this.pos.x >= movx.x && movx.x < slope.pos.x + tdim.x) {
+                newPos.x = slope.pos.x + tdim.x;
+                this.moveSpeed = 0;
+                changeDir = true;
+            }
+        }
+
+    }
+    this.grounded = grounded;
+    this.pos = newPos;
+    plat && plat.riding(this);
+    for (var i = 0x0; i < tiles.length; i++) {
+        var obj = tiles[i];
+        var tileHitbox = obj.definition.HALF === true ? oneByHalf : oneByOne;
+        if (squar.intersection(obj.pos, tileHitbox, newPos, this.dim)) {
+            if (obj.definition.ICE === undefined) {
+                PlayerObject.ANIMATION_RATE = 3
+                PlayerObject.MOVE_SPEED_ACCEL = 0.0125
+                PlayerObject.MOVE_SPEED_DECEL = 0.0225
+                PlayerObject.MOVE_SPEED_ACCEL_AIR = 0.0025
+            }
+            obj.definition.TRIGGER(this.game, this.pid, obj, this.level, this.zone, obj.pos.x, obj.pos.y, td32.TRIGGER.TYPE.TOUCH);
+        }
+    }
+    if (this.isState(PlayerObject.SNAME.DOWN) && 0.05 > Math.abs(this.moveSpeed))
+        for (_0x5b32b0 = 0x0; _0x5b32b0 < standingOn.length; _0x5b32b0++) obj = standingOn[_0x5b32b0], obj.definition.TRIGGER(this.game, this.pid, obj, this.level, this.zone, obj.pos.x, obj.pos.y, td32.TRIGGER.TYPE.DOWN);
+    if (this.isState(PlayerObject.SNAME.RUN))
+        for (_0x5b32b0 = 0x0; _0x5b32b0 < _0x346d1d.length; _0x5b32b0++) obj = _0x346d1d[_0x5b32b0], obj.definition.TRIGGER(this.game, this.pid, obj, this.level, this.zone, obj.pos.x, obj.pos.y, td32.TRIGGER.TYPE.PUSH);
+    for (_0x5b32b0 = 0x0; _0x5b32b0 < _0x50b7b9.length; _0x5b32b0++) obj = _0x50b7b9[_0x5b32b0], obj.definition.TRIGGER(this.game, this.pid, obj, this.level, this.zone, obj.pos.x, obj.pos.y, 0x0 < this.power ? td32.TRIGGER.TYPE.BIG_BUMP : td32.TRIGGER.TYPE.SMALL_BUMP), this.jumping = -0x1, this.fallSpeed = -PlayerObject.BLOCK_BUMP_THRESHOLD;
+    standingOn.forEach(tile => {
+        tile.definition.TRIGGER(this.game, this.pid, tile, this.level, this.zone, tile.pos.x, tile.pos.y, td32.TRIGGER.TYPE.STAND);
+    });
+};
+
+/* God bless OSS */
+PlayerObject.prototype.collisionTest = function (pos, dim) {
+    var tdim = vec2.make(1., 1.);
+    var tiles = this.game.world.getZone(this.level, this.zone).getTiles(pos, dim);
+    for (var i = 0; i < tiles.length; i++) {
+        var tile = tiles[i];
+        if (!tile.definition.COLLIDE) { continue; }
+
+        if (tile.definition.PLATFORM !== undefined) return false;
+        if (squar.intersection(tile.pos, tdim, pos, dim)) { return true; }
+    }
+    return false;
+};
+PlayerObject.prototype.interaction = function () {
+    if (this.spectator) return;
+
+    for (var i = 0x0; i < this.game.objects.length; i++) {
+        var obj = this.game.objects[i];
+        if (obj !== this && !this.dead && obj.level === this.level && obj.zone === this.zone && obj.isTangible() && squar.intersection(obj.pos, obj.dim, this.pos, this.dim)) {
+            if (0x0 < this.starTimer && obj.bonk && this.game instanceof Game) {
+                obj.bonk();
+                this.game.out.push(NET020.encode(obj.level, obj.zone, obj.oid, 0x1));
+            }
+            if (obj instanceof PlayerObject && obj.killTarget) {
+                this.damage(obj);
+                if (this.dead) this.game.out.push(NET017.encode(obj.pid, 0x1));
+            }
+            if (obj instanceof PlayerObject && 0x0 < obj.starTimer && !this.autoTarget && this.game instanceof Game) {
+                this.damage(obj);
+                if (this.dead) this.game.out.push(NET017.encode(obj.pid, 0x1));
+            }
+            if (this.lastPos.y > obj.pos.y + 0.66 * obj.dim.y - Math.max(0x0, obj.fallSpeed)) {
+                if (obj.playerStomp)
+                    if (!this.spectator)
+                        obj.playerStomp(this);
+            } else {
+                if (this.lastPos.y < obj.pos.y) {
+                    if (obj.playerBump) obj.playerBump(this)
+                } else {
+                    if (obj.playerCollide)
+                        if (!this.spectator)
+                            obj.playerCollide(this);
+                }
+            }
+        }
+    }
+};
+PlayerObject.prototype.arrow = function () {
+    if (this.spectator) return;
+
+    for (var threshold = 0x0, i = 0x0; i < this.game.objects.length; i++) {
+        var obj = this.game.objects[i];
+        obj !== this && obj instanceof PlayerObject && obj.level === this.level && obj.zone === this.zone && (threshold += 0x1 - Math.min(PlayerObject.ARROW_RAD_OUT, Math.max(0x0, vec2.distance(this.pos, obj.pos) - PlayerObject.ARROW_RAD_IN)) / PlayerObject.ARROW_RAD_OUT);
+    }
+    this.arrowFade = Math.min(PlayerObject.ARROW_THRESHOLD_MAX, Math.max(0x0, threshold - PlayerObject.ARROW_THRESHOLD_MIN)) / PlayerObject.ARROW_THRESHOLD_MAX;
+};
+PlayerObject.prototype.sound = GameObject.prototype.sound;
+PlayerObject.prototype.attack = function () {
+    if (this.spectator) return;
+
+    this.attackTimer = PlayerObject.ATTACK_DELAY;
+    this.attackCharge -= PlayerObject.ATTACK_CHARGE;
+    var dir = this.reverse ? vec2.add(this.pos, PlayerObject.PROJ_OFFSET) : vec2.add(this.pos, vec2.multiply(PlayerObject.PROJ_OFFSET, vec2.make(-0x1, 0x1)));
+    this.game.createObject(FireballObject.ID, this.level, this.zone, dir, [undefined, this.reverse, this.pid, this.skin]);
+    this.play((this.pid === this.game.pid && app.charMusic && this.skin in SKIN_SFX_URL ? SKIN_SFX_URL[this.skin] : "") + "fireball.mp3", 0x1, 0.04);
+};
+PlayerObject.prototype.bounce = function () {
+    this.jumping = 0;
+    this.springJump = 0;
+    this.isBounce = true;
+};
+PlayerObject.prototype.damage = function (source) {
+    if (this.spectator) return;
+    //0x0 < this.damageTimer || 0x0 < this.starTimer || this.isState(PlayerObject.SNAME.TRANSFORM) || this.isState(PlayerObject.SNAME.CLIMB) || this.isState(PlayerObject.SNAME.POLE) || this.pipeWarp || 0x0 < this.pipeTimer || 0x0 < this.pipeDelay || this.autoTarget || (0x0 < this.power ? (this.tfm(0x0), this.damageTimer = PlayerObject.DAMAGE_TIME) : this.kill());
+    if(
+        this.damageTimer > 0 || this.starTimer > 0 ||
+        this.isState(PlayerObject.SNAME.TRANSFORM) ||
+        this.isState(PlayerObject.SNAME.CLIMB) ||
+        this.isState(PlayerObject.SNAME.POLE) ||
+        this.pipeWarp || this.pipeTimer > 0 || this.pipeDelay > 0 ||
+        this.autoTarget
+    ) { return; }
+    if(this.power > 0) { this.tfm(0); this.damageTimer = PlayerObject.DAMAGE_TIME; }
+    else {
+        //if (source && source.kicker !== -1) { this.game.out.push(NET017.encode(source.kicker, 0x3)); }
+        this.kill();
+    }
+};
+PlayerObject.prototype.invuln = function () {
+    this.damageTimer = app.net.gameMode === 1 ? 120 : PlayerObject.DAMAGE_TIME;
+};
+
+PlayerObject.prototype.powerupVisual = function (object) {
+    if (object instanceof CoinObject)
+        this.game.addCoin(false, true);
+    else if (object instanceof GoldFlowerObject)
+        this.game.addCoin(true, true);
+};
+PlayerObject.prototype.powerup = function (object) {
+    if (this.spectator) return;
+
+    if (object instanceof MushroomObject) {
+        if (0x1 > this.power) {
+            this.tfm(0x1);
+            this.rate = 0x73;
+        }
+    } else if (object instanceof FlowerObject) {
+        if (0x2 > this.power) {
+            this.tfm(0x2);
+            this.rate = 0x71;
+        }
+    } else if (object instanceof StarObject) {
+        this.star();
+        this.game.out.push(NET013.encode(0x2));
+        this.rate = 0x43
+    } else if (object instanceof LifeObject) {
+        var zn = this.game.getZone(this.level, this.zone);
+        zn.effects.push(new RisingLabelEffect(this.pos, "1UP"));
+        this.game.lifeage();
+    } else if (object instanceof CoinObject) {
+        //this.game.addCoin(false, false);  //server side
+    } else if (object instanceof GoldFlowerObject) {
+        //this.game.addCoin(true, false);   //server side
+    }
+    else if (object instanceof AxeObject) {
+        this.game.stopGameTimer(this.game.touchMode);
+        this.game.out.push(NET018.encode());
+    } else if (object instanceof PoisonMushroomObject)
+        this.damage(object);
+};
+PlayerObject.prototype.axe = function (text) {
+    if (this.spectator) return;
+
+    (text = this.game.getText(this.level, this.zone, text.toString())) || (text = this.game.getText(this.level, this.zone, "too bad"));
+    var axe = this.game.getAxe(this.level, this.zone);
+    text && (this.moveSpeed = 0, this.pos = vec2.copy(axe.pos), this.autoTarget = vec2.add(text.pos, vec2.make(0x0, -1.6)));
+};
+PlayerObject.prototype.star = function () {
+    if (this.spectator) return;
+
+    this.starMusic && (this.starMusic.stop(), this.starMusic = undefined);
+    this.starTimer = PlayerObject.STAR_LENGTH;
+    (this.starMusic = this.play((app.charMusic && this.skin in SKIN_SFX_URL ? SKIN_SFX_URL[this.skin] : "") + "star.mp3", 0x1, 0.04)) && this.starMusic.loop(true);
+};
+PlayerObject.prototype.tfm = function (to) {
+    if (this.spectator) return;
+
+    if (!this.isState(PlayerObject.SNAME.TRANSFORM)) this.power < to ? this.play("powerup.mp3", 0x1, 0.04) : this.play("powerdown.mp3", 0x1, 0.04);
+    this.tfmTarget = to;
+    this.tfmTimer = PlayerObject.TRANSFORM_TIME;
+    this.setState(PlayerObject.SNAME.TRANSFORM);
+};
+PlayerObject.prototype.warp = function (warpId) {
+    var warp = this.game.world.getLevel(this.level).getWarp(warpId);
+    if (warp) {
+        if ((this.level !== warp.level) || (this.zone !== warp.zone)) {
+            this.game.pauseCamera = false;
+            this.game.pauseCameraY = false;
+        }
+
+        this.level = warp.level;
+        this.zone = warp.zone;
+        this.pos = warp.pos;
+        this.autoTarget = undefined;
+        this.grounded = false;
+    }
+};
+PlayerObject.prototype.pipe = function (pipeDir, warp, delay) {
+    this.moveSpeed = 0;
+    if (!(0x1 !== pipeDir && 0x2 !== pipeDir)) this.setState(PlayerObject.SNAME.TAUNT);
+    var destLevel = this.game.world.getLevel(this.level).getWarp(warp);
+    this.pipeWarp = warp;
+    this.pipeTimer = 0x1e;
+    this.pipeDir = pipeDir;
+    this.pipeExt = destLevel.data;
+    this.pipeDelayLength = delay;
+};
+PlayerObject.prototype.weedeat = function () {
+    for (var i = 0x0; i < this.game.objects.length; i++) {
+        var obj = this.game.objects[i];
+        obj instanceof PiranhaPlantObject && !obj.dead && vec2.distance(this.pos, obj.pos) < PlayerObject.WEED_EAT_RADIUS && obj.destroy();
+    }
+};
+PlayerObject.prototype.pole = function (pos) {
+    if (this.autoTarget) return;
+    //this.game.stopGameTimer(this.game.touchMode);
+    this.starMusic && (this.starMusic.stop(), this.starMusic = undefined, this.starTimer = 0x0);
+    this.setState(PlayerObject.SNAME.POLE);
+    this.fallSpeed = this.moveSpeed = 0x0;
+    this.pos.x = pos.x;
+    this.poleTimer = 0xf;
+    this.poleSound = false;
+};
+PlayerObject.prototype.vine = function (pos, warp) {
+    this.setState(PlayerObject.SNAME.CLIMB);
+    this.fallSpeed = this.moveSpeed = 0x0;
+    this.pos.x = pos.x;
+    this.vineWarp = warp;
+};
+PlayerObject.prototype.hide = function () {
+    this.setState(PlayerObject.SNAME.HIDE);
+};
+PlayerObject.prototype.show = function () {
+    this.setState(PlayerObject.SNAME.STAND);
+};
+PlayerObject.prototype.kill = function () {
+    if (this.isState(PlayerObject.SNAME.HIDE)) return;
+
+    this.starMusic && (this.starMusic.stop(), this.starMusic = undefined, this.starTimer = 0x0);
+    this.isState(PlayerObject.SNAME.GHOST) ? this.setState(PlayerObject.SNAME.DEADGHOST) : this.setState(PlayerObject.SNAME.DEAD);
+    this.dead = true;
+    this.deadTimer = PlayerObject.DEAD_TIME;
+    this.deadFreezeTimer = PlayerObject.DEAD_FREEZE_TIME;
+    this.fallSpeed = PlayerObject.DEAD_UP_FORCE;
+    if ((this.game.getPlayer() === this) && (this.game instanceof Game)) {
+        //this.game.stopGameTimer(this.game.touchMode);
+        this.game.out.push(NET011.encode());
+    }
+};
+PlayerObject.prototype.destroy = function () {
+    this.starMusic && (this.starMusic.stop(), this.starMusic = undefined, this.starTimer = 0x0);
+    GameObject.prototype.destroy.call(this);
+};
+PlayerObject.prototype.isTangible = function () {
+    return GameObject.prototype.isTangible.call(this) && !this.isState(PlayerObject.SNAME.HIDE) && 0x0 >= this.pipeDelay;
+};
+PlayerObject.prototype.setState = function (stName) {
+    if (!stName) throw "unknwon state name";
+    var state = this.getStateByPowerIndex(stName, this.power);
+    if (state !== this.state) {
+        this.state = state;
+        if (0x0 < state.SPRITE.length) this.sprite = state.SPRITE[0x0];
+        this.dim = state.DIM;
+        this.anim = 0x0;
+    }
+};
+PlayerObject.prototype.getStateByPowerIndex = function (stateName, indexSize) {
+    for (var i = 0x0; i < PlayerObject.STATE.length; i++) {
+        var state = PlayerObject.STATE[i];
+        if (state.NAME === stateName && (state.ID >= PlayerObject.GENERIC_INDEX || state.ID >= PlayerObject.POWER_INDEX_SIZE * indexSize && state.ID < PlayerObject.POWER_INDEX_SIZE * (indexSize + 0x1))) return state;
+    }
+};
+PlayerObject.prototype.isState = function (stName) {
+    return stName === this.state.NAME;
+};
+PlayerObject.prototype.draw = function (spriteList) {
+    if (!(this.isState(PlayerObject.SNAME.HIDE) || 0x0 < this.pipeDelay || 0x0 < this.damageTimer && 0x1 < this.damageTimer % 0x3 && !this.isState(PlayerObject.SNAME.POLE))) {
+        var mode;
+        if (this.starTimer > 0) { mode = 0x02; }
+        else if (this.isState(PlayerObject.SNAME.GHOST) || this.isState(PlayerObject.SNAME.DEADGHOST)) { this.pid === this.game.spectatorID ? mode = 0x00 : mode = 0x01; }
+        else if ((this.isState(PlayerObject.SNAME.POLE) || this.isState(PlayerObject.SNAME.CLIMB) || this.isState(PlayerObject.SNAME.TRANSFORM) || this.isState(PlayerObject.SNAME.DEAD)) && !this.spectator) { mode = 0x00; }
+        else { mode = 0x00; }
+        if (this.sprite.INDEX instanceof Array)
+            for (var _0x5814e0 = this.sprite.INDEX, _0x3f6b38 = 0x0; _0x3f6b38 < _0x5814e0.length; _0x3f6b38++)
+                for (var _0x13a17a = 0x0; _0x13a17a < _0x5814e0[_0x3f6b38].length; _0x13a17a++) 0x2 === mode && spriteList.push({
+                    'pos': vec2.add(vec2.add(this.pos, PlayerObject.DIM_OFFSET), vec2.make(this.reverse ? _0x13a17a : -_0x13a17a, _0x3f6b38)),
+                    'reverse': this.reverse,
+                    'index': _0x5814e0[_0x3f6b38][_0x13a17a],
+                    'skin': this.skin,
+                    'pid': this.pid,
+                    'mode': 0x0
+                }), spriteList.push({
+                    'pos': vec2.add(vec2.add(this.pos, PlayerObject.DIM_OFFSET), vec2.make(this.reverse ? _0x13a17a : -_0x13a17a, _0x3f6b38)),
+                    'reverse': this.reverse,
+                    'index': _0x5814e0[_0x3f6b38][_0x13a17a],
+                    'skin': this.skin,
+                    'pid': this.pid,
+                    'mode': mode
+                });
+        else 0x2 === mode && spriteList.push({
+            'pos': vec2.add(this.pos, PlayerObject.DIM_OFFSET),
+            'reverse': this.reverse,
+            'index': this.sprite.INDEX,
+            'skin': this.skin,
+            'pid': this.pid,
+            'mode': 0x0
+        }), spriteList.push({
+            'pos': vec2.add(this.pos, PlayerObject.DIM_OFFSET),
+            'reverse': this.reverse,
+            'index': this.sprite.INDEX,
+            'skin': this.skin,
+            'pid': this.pid,
+            'mode': mode
+        });
+        if(this.pid === this.game.pid) {
+            0x0 < this.arrowFade && (mode = 0xa0 + parseInt(0x20 * this.arrowFade), spriteList.push({
+                'pos': vec2.add(vec2.add(this.pos, vec2.make(0x0, this.dim.y)), PlayerObject.ARROW_OFFSET),
+                'reverse': false,
+                'index': PlayerObject.ARROW_SPRITE,
+                'mode': mode
+            }));
+        }
+    }
+};
+PlayerObject.prototype.write = function (textList) {
+    if (this.spectator || this.isState(PlayerObject.SNAME.HIDE)) {
+        return;
+    }
+    if (0.05 < this.arrowFade) {
+        if(this.pid === this.game.pid) {
+            textList.push({
+                'pos': vec2.add(vec2.add(this.pos, vec2.make(0x0, this.dim.y)), PlayerObject.TEXT_OFFSET),
+                'size': PlayerObject.TEXT_SIZE,
+                'color': "rgba(255,255,255," + this.arrowFade + ')',
+                'text': PlayerObject.ARROW_TEXT,
+                'badges': this.badges
+            });
+        }
+    } else {
+        if (this.name) {
+            textList.push({
+                'pos': vec2.add(vec2.add(this.pos, vec2.make(0x0, this.sprite.INDEX instanceof Array ? 0x2 : 0x1)), PlayerObject.TEAM_OFFSET),
+                'size': PlayerObject.TEAM_SIZE,
+                'color': this.isDev ? PlayerObject.DEV_TEAM_COLOR : this.isMod ? PlayerObject.MOD_TEAM_COLOR : PlayerObject.TEAM_COLOR,
+                'text': this.name,
+                'badges': this.badges,
+                'isName': true
+            });
+        }
+    }
+};
+PlayerObject.prototype.play = function (_0x5c61d3, _0x1cd15d, _0x457912) {
+    var zone = this.game.getZone();
+    if(this.followPlayer) { var p = this.game.getPlayer(); zone = this.game.world.getZone(p.level, p.zone); }
+    if (this.zone === zone.id && this.level === zone.level) return _0x5c61d3 = app.audio.getSpatialAudio(_0x5c61d3, _0x1cd15d, _0x457912, "effect"), _0x5c61d3.play(this.pos), this.sounds.push(_0x5c61d3), _0x5c61d3;
+};
+GameObject.REGISTER_OBJECT(PlayerObject);
+"use strict";
+
+function GoombaObject(game, level, zone, pos, oid, variant) {
+    GameObject.call(this, game, level, zone, pos);
+    this.oid = oid;
+    this.variant = isNaN(parseInt(variant)) ? 0x0 : parseInt(variant);
+    this.setState(GoombaObject.STATE.RUN);
+    this.bonkTimer = this.deadTimer = this.anim = 0x0;
+    this.dim = vec2.make(0x1, 0x1);
+    this.fallSpeed = this.moveSpeed = 0x0;
+    this.disabled = this.grounded = false;
+    this.disabledTimer = 0x0;
+    this.proxHit = false;
+    this.dir = true;
+    this.disable();
+}
+GoombaObject.ASYNC = false;
+GoombaObject.ID = 0x11;
+GoombaObject.NAME = "GOOMBA";
+GoombaObject.ANIMATION_RATE = 0x5;
+GoombaObject.VARIANT_OFFSET = 0x70; // underground color variant
+GoombaObject.VARIANT_2_OFFSET = 0x100; // castle color variant
+GoombaObject.ENABLE_FADE_TIME = 0xf;
+GoombaObject.ENABLE_DIST = 0x1a;
+GoombaObject.DEAD_TIME = 0xf;
+GoombaObject.BONK_TIME = 0x5a;
+GoombaObject.BONK_IMP = vec2.make(0.25, 0.4);
+GoombaObject.BONK_DECEL = 0.925;
+GoombaObject.BONK_FALL_SPEED = 0.5;
+GoombaObject.MOVE_SPEED_MAX = 0.075;
+GoombaObject.FALL_SPEED_MAX = 0.35;
+GoombaObject.FALL_SPEED_ACCEL = 0.085;
+GoombaObject.SPRITE = {};
+GoombaObject.SPRITE_LIST = [{
+    'NAME': "RUN0",
+    'ID': 0x0,
+    'INDEX': 0xf
+}, {
+    'NAME': "RUN1",
+    'ID': 0x1,
+    'INDEX': 0x1f
+}, {
+    'NAME': "FALL",
+    'ID': 0x2,
+    'INDEX': 0xe
+}, {
+    'NAME': "DEAD",
+    'ID': 0x3,
+    'INDEX': 0x2f
+}];
+for (var i = 0x0; i < GoombaObject.SPRITE_LIST.length; i++) GoombaObject.SPRITE[GoombaObject.SPRITE_LIST[i].NAME] = GoombaObject.SPRITE_LIST[i], GoombaObject.SPRITE[GoombaObject.SPRITE_LIST[i].ID] = GoombaObject.SPRITE_LIST[i];
+GoombaObject.STATE = {};
+GoombaObject.STATE_LIST = [{
+    'NAME': "RUN",
+    'ID': 0x0,
+    'SPRITE': [GoombaObject.SPRITE.RUN0, GoombaObject.SPRITE.RUN1]
+}, {
+    'NAME': "FALL",
+    'ID': 0x1,
+    'SPRITE': [GoombaObject.SPRITE.FALL]
+}, {
+    'NAME': "DEAD",
+    'ID': 0x50,
+    'SPRITE': [GoombaObject.SPRITE.DEAD]
+}, {
+    'NAME': "BONK",
+    'ID': 0x51,
+    'SPRITE': []
+}];
+for (var i = 0x0; i < GoombaObject.STATE_LIST.length; i++) GoombaObject.STATE[GoombaObject.STATE_LIST[i].NAME] = GoombaObject.STATE_LIST[i], GoombaObject.STATE[GoombaObject.STATE_LIST[i].ID] = GoombaObject.STATE_LIST[i];
+GoombaObject.prototype.update = function (packet) {
+    switch (packet) {
+        case 0x0:
+            this.kill();
+            break;
+        case 0x1:
+            this.bonk();
+            break;
+        case 0xa0:
+            this.enable();
+    }
+};
+GoombaObject.prototype.step = function () {
+    /* Disabled */
+    if (this.disabled) { this.proximity(); return; }
+    else if (this.disabledTimer > 0) { this.disabledTimer--; }
+
+    /* Bonked */
+    if (this.state === GoombaObject.STATE.BONK) {
+        if (this.bonkTimer++ > GoombaObject.BONK_TIME || this.pos.y + this.dim.y < 0) { this.destroy(); return; }
+        
+        this.pos = vec2.add(this.pos, vec2.make(this.moveSpeed, this.fallSpeed));
+        this.moveSpeed *= GoombaObject.BONK_DECEL;
+        this.fallSpeed = Math.max(this.fallSpeed - GoombaObject.FALL_SPEED_ACCEL, -GoombaObject.BONK_FALL_SPEED);
+        return;
+    }
+    
+    /* Anim */
+    this.anim++;
+    this.sprite = this.state.SPRITE[parseInt(this.anim / GoombaObject.ANIMATION_RATE) % this.state.SPRITE.length];
+    
+    /* Dead */
+    if (this.state === GoombaObject.STATE.DEAD) { 
+        if (this.deadTimer++ < GoombaObject.DEAD_TIME) { } 
+        else { this.destroy(); }
+        return;
+    }
+
+    /* Normal Gameplay */
+    this.control();
+    this.physics();
+    this.sound();
+    if (this.pos.y < 0) { this.destroy(); }
+};
+GoombaObject.prototype.control = function () {
+    this.moveSpeed = this.dir ? -GoombaObject.MOVE_SPEED_MAX : GoombaObject.MOVE_SPEED_MAX;
+    this.grounded ? this.setState(GoombaObject.STATE.RUN) : this.setState(GoombaObject.STATE.FALL);
+};
+GoombaObject.prototype.physics = function () {
+    if(this.grounded) {
+        this.fallSpeed = 0;
+    }
+    this.fallSpeed = Math.max(this.fallSpeed - GoombaObject.FALL_SPEED_ACCEL, -GoombaObject.FALL_SPEED_MAX);
+    
+    var movx = vec2.add(this.pos, vec2.make(this.moveSpeed, 0.));
+    var movy = vec2.add(this.pos, vec2.make(this.moveSpeed, this.fallSpeed));
+    
+    var ext1 = vec2.make(this.moveSpeed>=0?this.pos.x:this.pos.x+this.moveSpeed, this.fallSpeed<=0?this.pos.y:this.pos.y+this.fallSpeed);
+    var ext2 = vec2.make(this.dim.y+Math.abs(this.moveSpeed), this.dim.y+Math.abs(this.fallSpeed));
+    var tiles = this.game.world.getZone(this.level, this.zone).getTiles(ext1, ext2);
+    var halfTile = vec2.make(1., 0.5);
+    var fullTile = vec2.make(1., 1.);
+    
+    var changeDir = false;
+    this.grounded = false;
+    for(var i=0;i<tiles.length;i++) {
+        var tile = tiles[i];
+        var tdim = tile.definition.HALF === true ? halfTile : fullTile;
+        if(!tile.definition.COLLIDE || tile.definition.HIDDEN) { continue; }
+        
+        var hitx = squar.intersection(tile.pos, tdim, movx, this.dim);
+        
+        if(hitx) {
+            if(this.pos.x <= movx.x && movx.x + this.dim.x > tile.pos.x) {
+                movx.x = tile.pos.x - this.dim.x;
+                movy.x = movx.x;
+                this.moveSpeed = 0;
+                changeDir = true;
+            }
+            else if(this.pos.x >= movx.x && movx.x < tile.pos.x + tdim.x) {
+                movx.x = tile.pos.x + tdim.x;
+                movy.x = movx.x;
+                this.moveSpeed = 0;
+                changeDir = true;
+            }
+        }
+    }
+        
+    for(var i=0;i<tiles.length;i++) {
+        var tile = tiles[i];
+        if(!tile.definition.COLLIDE || tile.definition.HIDDEN) { continue; }
+        
+        var hity = squar.intersection(tile.pos, tdim, movy, this.dim);
+        
+        if(hity) {
+            if(this.pos.y >= movy.y && movy.y < tile.pos.y + tdim.y) {
+                movy.y = tile.pos.y + tdim.y;
+                this.fallSpeed = 0;
+                this.grounded = true;
+            }
+            else if(this.pos.y <= movy.y && movy.y + this.dim.y > tile.pos.y) {
+                movy.y = tile.pos.y - this.dim.y;
+                this.fallSpeed = 0;
+            }
+        }
+    }
+    this.pos = vec2.make(movx.x, movy.y);
+    if(changeDir) { this.dir = !this.dir; }
+};
+GoombaObject.prototype.sound = GameObject.prototype.sound;
+GoombaObject.prototype.proximity = function () {
+    var player = this.game.getPlayer();
+    player && !player.dead && player.level === this.level && player.zone === this.zone && !this.proxHit && vec2.distance(player.pos, this.pos) < GoombaObject.ENABLE_DIST && (this.game.out.push(NET020.encode(this.level, this.zone, this.oid, 0xa0)), this.proxHit = true);
+};
+GoombaObject.prototype.enable = function () {
+    this.disabled && (this.disabled = false, this.disabledTimer = GoombaObject.ENABLE_FADE_TIME);
+};
+GoombaObject.prototype.disable = function () {
+    this.disabled = true;
+};
+GoombaObject.prototype.damage = function (player) {
+    this.dead || (this.bonk(), this.game.out.push(NET020.encode(this.level, this.zone, this.oid, 0x1)));
+};
+GoombaObject.prototype.bonk = function () {
+    this.dead || (this.setState(GoombaObject.STATE.BONK), this.moveSpeed = GoombaObject.BONK_IMP.x, this.fallSpeed = GoombaObject.BONK_IMP.y, this.dead = true, this.play("kick.mp3", 0x1, 0.04));
+};
+GoombaObject.prototype.playerCollide = function (player) {
+    this.dead || this.garbage || player.damage(this);
+};
+GoombaObject.prototype.playerStomp = function (player) {
+    this.dead || this.garbage || (this.kill(), player.bounce(), this.game.out.push(NET020.encode(this.level, this.zone, this.oid, 0x0)));
+};
+GoombaObject.prototype.playerBump = function (player) {
+    this.dead || this.garbage || player.damage(this);
+};
+GoombaObject.prototype.kill = function () {
+    this.dead = true;
+    this.setState(GoombaObject.STATE.DEAD);
+    this.play("stomp.mp3", 0x1, 0.04);
+};
+GoombaObject.prototype.destroy = GameObject.prototype.destroy;
+GoombaObject.prototype.isTangible = GameObject.prototype.isTangible;
+GoombaObject.prototype.setState = function (state) {
+    state !== this.state && (this.state = state, 0x0 < state.SPRITE.length && (this.sprite = state.SPRITE[0x0]), this.anim = 0x0);
+};
+GoombaObject.prototype.draw = function (spriteList) {
+    if (!this.disabled) {
+        var mode;
+        mode = this.state === GoombaObject.STATE.BONK ? 0x3 : this.disabledTimer > 0 ? 0xa0 + parseInt(0x20 * (1 - this.disabledTimer / GoombaObject.ENABLE_FADE_TIME)) : 0x0;
+        if (this.sprite.INDEX instanceof Array)
+            for (var s = this.sprite.INDEX, i = 0; i < s.length; i++)
+                for (var j = 0; j < s[i].length; j++) {
+                    var index = s[mode ? s.length - 1 - i : i][j];
+                    switch (this.variant) {
+                        case 1:
+                            index += GoombaObject.VARIANT_OFFSET;
+                            break;
+                        case 2:
+                            index += GoombaObject.VARIANT_2_OFFSET;
+                            break;
+                    }
+                    spriteList.push({
+                        'pos': vec2.add(this.pos, vec2.make(j, i)),
+                        'reverse': !this.dir,
+                        'index': index,
+                        'mode': mode
+                    });
+                } else {
+            index = this.sprite.INDEX;
+            switch (this.variant) {
+                case 1:
+                    index += GoombaObject.VARIANT_OFFSET;
+                    break;
+                case 2:
+                    index += GoombaObject.VARIANT_2_OFFSET;
+                    break;
+            }
+            spriteList.push({
+                'pos': this.pos,
+                'reverse': !this.dir,
+                'index': index,
+                'mode': mode
+            });
+        }
+    }
+};
+GoombaObject.prototype.play = GameObject.prototype.play;
+GameObject.REGISTER_OBJECT(GoombaObject);
+"use strict";
+
+function KoopaObject(game, level, zone, pos, oid, fly, variant) {
+    GameObject.call(this, game, level, zone, pos);
+    this.oid = oid;
+    this.variant = isNaN(parseInt(variant)) ? 0 : parseInt(variant);
+    this.setState(parseInt(fly) ? KoopaObject.STATE.FLY : KoopaObject.STATE.RUN);
+    this.bonkTimer = this.anim = 0;
+    this.dim = vec2.make(1., 1.);
+    this.fallSpeed = this.moveSpeed = 0;
+    this.grounded = false;
+    this.jump = -1;
+    this.disabled = false;
+    this.disabledTimer = 0;
+    this.proxHit = false;
+    this.immuneTimer = 0;
+    this.dir = true;
+    this.kicker = -1;
+    this.disable();
+}
+KoopaObject.ASYNC = false;
+KoopaObject.ID = 0x12;
+KoopaObject.NAME = "KOOPA TROOPA GREEN";
+KoopaObject.ANIMATION_RATE = 0x3;
+KoopaObject.VARIANT_OFFSET = 0x20;
+KoopaObject.VARIANT_2_OFFSET = 0xd0;
+KoopaObject.ENABLE_FADE_TIME = 0xf;
+KoopaObject.ENABLE_DIST = 0x1a;
+KoopaObject.BONK_TIME = 0x5a;
+KoopaObject.BONK_IMP = vec2.make(0.25, 0.4);
+KoopaObject.BONK_DECEL = 0.925;
+KoopaObject.BONK_FALL_SPEED = 0.5;
+KoopaObject.PLAYER_IMMUNE_TIME = 0x6;
+KoopaObject.MOVE_SPEED_MAX = 0.075;
+KoopaObject.SHELL_MOVE_SPEED_MAX = 0.35;
+KoopaObject.FALL_SPEED_MAX = 0.35;
+KoopaObject.FALL_SPEED_ACCEL = 0.085;
+KoopaObject.JUMP_LENGTH_MAX = 0x14;
+KoopaObject.JUMP_DECEL = 0.025;
+KoopaObject.TRANSFORM_TIME = 0xaf;
+KoopaObject.TRANSFORM_THRESHOLD = 0x4b;
+KoopaObject.SPRITE = {};
+KoopaObject.SPRITE_LIST = [{
+    'NAME': "FLY0",
+    'ID': 0x0,
+    'INDEX': [
+        [0x68],
+        [0x58]
+    ]
+}, {
+    'NAME': "FLY1",
+    'ID': 0x1,
+    'INDEX': [
+        [0x69],
+        [0x59]
+    ]
+}, {
+    'NAME': "RUN0",
+    'ID': 0x2,
+    'INDEX': [
+        [0x66],
+        [0x56]
+    ]
+}, {
+    'NAME': "RUN1",
+    'ID': 0x3,
+    'INDEX': [
+        [0x67],
+        [0x57]
+    ]
+}, {
+    'NAME': "TRANSFORM",
+    'ID': 0x4,
+    'INDEX': 0x51
+}, {
+    'NAME': "SHELL",
+    'ID': 0x5,
+    'INDEX': 0x50
+}];
+for (var i = 0x0; i < KoopaObject.SPRITE_LIST.length; i++) KoopaObject.SPRITE[KoopaObject.SPRITE_LIST[i].NAME] = KoopaObject.SPRITE_LIST[i], KoopaObject.SPRITE[KoopaObject.SPRITE_LIST[i].ID] = KoopaObject.SPRITE_LIST[i];
+KoopaObject.STATE = {};
+KoopaObject.STATE_LIST = [{
+    'NAME': "FLY",
+    'ID': 0x0,
+    'SPRITE': [KoopaObject.SPRITE.FLY0, KoopaObject.SPRITE.FLY1]
+}, {
+    'NAME': "RUN",
+    'ID': 0x1,
+    'SPRITE': [KoopaObject.SPRITE.RUN0, KoopaObject.SPRITE.RUN1]
+}, {
+    'NAME': "TRANSFORM",
+    'ID': 0x2,
+    'SPRITE': [KoopaObject.SPRITE.SHELL, KoopaObject.SPRITE.TRANSFORM]
+}, {
+    'NAME': "SHELL",
+    'ID': 0x3,
+    'SPRITE': [KoopaObject.SPRITE.SHELL]
+}, {
+    'NAME': "SPIN",
+    'ID': 0x4,
+    'SPRITE': [KoopaObject.SPRITE.SHELL]
+}, {
+    'NAME': "BONK",
+    'ID': 0x51,
+    'SPRITE': []
+}];
+for (var i = 0x0; i < KoopaObject.STATE_LIST.length; i++) KoopaObject.STATE[KoopaObject.STATE_LIST[i].NAME] = KoopaObject.STATE_LIST[i], KoopaObject.STATE[KoopaObject.STATE_LIST[i].ID] = KoopaObject.STATE_LIST[i];
+KoopaObject.prototype.update = function (packet) {
+    switch (packet) {
+        case 0x1:
+            this.bonk();
+            break;
+        case 0x10:
+            this.stomped(true);
+            break;
+        case 0x11:
+            this.stomped(false);
+            break;
+        case 0xa0:
+            this.enable();
+    }
+};
+KoopaObject.prototype.step = function () {
+    if (this.disabled) this.proximity();
+    else if (0x0 < this.disabledTimer && this.disabledTimer--, this.state === KoopaObject.STATE.BONK) this.bonkTimer++ > KoopaObject.BONK_TIME || 0x0 > this.pos.y + this.dim.y ? this.destroy() : (this.pos = vec2.add(this.pos, vec2.make(this.moveSpeed, this.fallSpeed)), this.moveSpeed *= KoopaObject.BONK_DECEL, this.fallSpeed = Math.max(this.fallSpeed - KoopaObject.FALL_SPEED_ACCEL, -KoopaObject.BONK_FALL_SPEED));
+    else {
+        this.anim++;
+        this.sprite = this.state.SPRITE[parseInt(this.anim / KoopaObject.ANIMATION_RATE) % this.state.SPRITE.length];
+        if (this.state === KoopaObject.STATE.SHELL || this.state === KoopaObject.STATE.TRANSFORM) --this.transformTimer < KoopaObject.TRANSFORM_THRESHOLD && this.setState(KoopaObject.STATE.TRANSFORM), 0x0 >= this.transformTimer && this.setState(KoopaObject.STATE.RUN);
+        0x0 < this.immuneTimer && this.immuneTimer--;
+        this.control();
+        this.physics();
+        this.interaction();
+        this.sound();
+        0x0 > this.pos.y && this.destroy();
+    }
+};
+KoopaObject.prototype.control = function () {
+    if (this.state === KoopaObject.STATE.FLY) this.moveSpeed = this.dir ? -KoopaObject.MOVE_SPEED_MAX : KoopaObject.MOVE_SPEED_MAX, this.grounded && (this.jump = 0x0);
+    else if (this.state === KoopaObject.STATE.RUN) this.moveSpeed = this.dir ? -KoopaObject.MOVE_SPEED_MAX : KoopaObject.MOVE_SPEED_MAX;
+    else if (this.state === KoopaObject.STATE.SPIN) this.moveSpeed = this.dir ? -KoopaObject.SHELL_MOVE_SPEED_MAX : KoopaObject.SHELL_MOVE_SPEED_MAX;
+    else if (this.state === KoopaObject.STATE.SHELL || this.state === KoopaObject.STATE.TRANSFORM) this.moveSpeed = 0x0;
+    this.jump > KoopaObject.JUMP_LENGTH_MAX && (this.jump = -0x1);
+};
+
+KoopaObject.prototype.physics = function () {
+    if (this.jump !== -1) {
+        this.fallSpeed = KoopaObject.FALL_SPEED_MAX - (this.jump * KoopaObject.JUMP_DECEL);
+        this.jump++;
+        this.grounded = false;
+    }
+    else {
+        if (this.grounded) { this.fallSpeed = 0; }
+        this.fallSpeed = Math.max(this.fallSpeed - KoopaObject.FALL_SPEED_ACCEL, -KoopaObject.FALL_SPEED_MAX);
+    }
+
+    if (this.grounded) {
+        this.fallSpeed = 0;
+    }
+    this.fallSpeed = Math.max(this.fallSpeed - KoopaObject.FALL_SPEED_ACCEL, -KoopaObject.FALL_SPEED_MAX);
+
+    var movx = vec2.add(this.pos, vec2.make(this.moveSpeed, 0.));
+    var movy = vec2.add(this.pos, vec2.make(this.moveSpeed, this.fallSpeed));
+
+    var ext1 = vec2.make(this.moveSpeed >= 0 ? this.pos.x : this.pos.x + this.moveSpeed, this.fallSpeed <= 0 ? this.pos.y : this.pos.y + this.fallSpeed);
+    var ext2 = vec2.make(this.dim.y + Math.abs(this.moveSpeed), this.dim.y + Math.abs(this.fallSpeed));
+    var tiles = this.game.world.getZone(this.level, this.zone).getTiles(ext1, ext2);
+    var tdim = vec2.make(1., 1.);
+
+    var changeDir = false;
+    this.grounded = false;
+    for (var i = 0; i < tiles.length; i++) {
+        var tile = tiles[i];
+        if (!tile.definition.COLLIDE) { continue; }
+
+        var hitx = squar.intersection(tile.pos, tdim, movx, this.dim);
+
+        if (hitx) {
+            if (this.state === KoopaObject.STATE.SPIN) tile.definition.TRIGGER(this.game, this.pid, tile, this.level, this.zone, tile.pos.x, tile.pos.y, td32.TRIGGER.TYPE.SHELL);
+
+            if (this.pos.x + this.dim.x <= tile.pos.x && movx.x + this.dim.x > tile.pos.x) {
+                movx.x = tile.pos.x - this.dim.x;
+                movy.x = movx.x;
+                this.moveSpeed = 0;
+                changeDir = true;
+            }
+            else if (this.pos.x >= tile.pos.x + tdim.x && movx.x < tile.pos.x + tdim.x) {
+                movx.x = tile.pos.x + tdim.x;
+                movy.x = movx.x;
+                this.moveSpeed = 0;
+                changeDir = true;
+            }
+        }
+    }
+
+    for (var i = 0; i < tiles.length; i++) {
+        var tile = tiles[i];
+        if (!tile.definition.COLLIDE) { continue; }
+
+        var hity = squar.intersection(tile.pos, tdim, movy, this.dim);
+
+        if (hity) {
+            if (this.pos.y >= tile.pos.y + tdim.y && movy.y < tile.pos.y + tdim.y) {
+                movy.y = tile.pos.y + tdim.y;
+                this.grounded = true;
+            }
+            else if (this.pos.y + this.dim.y <= tile.pos.y && movy.y + this.dim.y > tile.pos.y) {
+                movy.y = tile.pos.y - this.dim.y;
+                this.jump = -1;
+                this.fallSpeed = 0;
+            }
+        }
+    }
+    this.pos = vec2.make(movx.x, movy.y);
+    if (changeDir) { this.dir = !this.dir; }
+};
+
+KoopaObject.prototype.interaction = function () {
+    if (this.state === KoopaObject.STATE.SPIN)
+        for (var i = 0x0; i < this.game.objects.length; i++) {
+            var obj = this.game.objects[i];
+            obj === this || obj instanceof PlayerObject || !obj.isTangible() || !obj.damage || obj.level === this.level && obj.zone === this.zone && squar.intersection(obj.pos, obj.dim, this.pos, this.dim) && obj.damage(this);
+        }
+};
+KoopaObject.prototype.proximity = function () {
+    var player = this.game.getPlayer();
+    player && !player.dead && player.level === this.level && player.zone === this.zone && !this.proxHit && vec2.distance(player.pos, this.pos) < KoopaObject.ENABLE_DIST && (this.game.out.push(NET020.encode(this.level, this.zone, this.oid, 0xa0)), this.proxHit = true);
+};
+KoopaObject.prototype.sound = GameObject.prototype.sound;
+KoopaObject.prototype.enable = function () {
+    this.disabled && (this.disabled = false, this.disabledTimer = KoopaObject.ENABLE_FADE_TIME);
+};
+KoopaObject.prototype.disable = function () {
+    this.disabled = true;
+};
+KoopaObject.prototype.damage = function (_0x565802) {
+    this.dead || (this.bonk(), this.game.out.push(NET020.encode(this.level, this.zone, this.oid, 0x1)));
+};
+KoopaObject.prototype.bonk = function () {
+    this.dead || (this.setState(KoopaObject.STATE.BONK), this.moveSpeed = KoopaObject.BONK_IMP.x, this.fallSpeed = KoopaObject.BONK_IMP.y, this.dead = true, this.play("kick.mp3", 1, 0.04));
+};
+KoopaObject.prototype.stomped = function (dir, kicker) {
+    if (this.state === KoopaObject.STATE.FLY) this.setState(KoopaObject.STATE.RUN), this.jump = -0x1;
+    else if (this.state === KoopaObject.STATE.RUN) this.setState(KoopaObject.STATE.SHELL), this.transformTimer = KoopaObject.TRANSFORM_TIME;
+    else if (this.state === KoopaObject.STATE.SPIN) this.setState(KoopaObject.STATE.SHELL), this.transformTimer = KoopaObject.TRANSFORM_TIME;
+    else if (this.state === KoopaObject.STATE.SHELL || this.state === KoopaObject.STATE.TRANSFORM) this.setState(KoopaObject.STATE.SPIN), this.dir = dir, this.kicker = kicker;
+    this.state === KoopaObject.STATE.SPIN ? this.play("kick.mp3", 0x1, 0.04) : this.play("stomp.mp3", 0x1, 0.04);
+};
+KoopaObject.prototype.playerCollide = function (player) {
+    if (!(this.dead || this.garbage)) {
+        if (this.state === KoopaObject.STATE.SHELL || this.state === KoopaObject.STATE.TRANSFORM) {
+            var dir = 0x0 < player.pos.x - this.pos.x;
+            this.stomped(dir, player.pid);
+            this.game.out.push(NET020.encode(this.level, this.zone, this.oid, dir ? 0x10 : 0x11));
+            this.immuneTimer = KoopaObject.PLAYER_IMMUNE_TIME;
+        } else {
+            if (0x0 >= this.immuneTimer) player.damage(this);
+        }
+    }
+};
+KoopaObject.prototype.playerStomp = function (player) {
+    if (!this.dead && !this.garbage) {
+        var stomped = 0x0 < player.pos.x - this.pos.x;
+        player.bounce();
+        this.stomped(stomped);
+        this.immuneTimer = KoopaObject.PLAYER_IMMUNE_TIME;
+        this.game.out.push(NET020.encode(this.level, this.zone, this.oid, stomped ? 0x10 : 0x11));
+    }
+};
+KoopaObject.prototype.playerBump = function (player) {
+    this.dead || this.garbage || player.damage(this);
+};
+KoopaObject.prototype.kill = function () { };
+KoopaObject.prototype.destroy = GameObject.prototype.destroy;
+KoopaObject.prototype.isTangible = GameObject.prototype.isTangible;
+KoopaObject.prototype.setState = function (state) {
+    state !== this.state && (this.state = state, 0x0 < state.SPRITE.length && (this.sprite = state.SPRITE[0x0]), this.anim = 0x0);
+};
+KoopaObject.prototype.draw = function (spriteList) {
+    if (!this.disabled) {
+        var mode;
+        mode = this.state === KoopaObject.STATE.BONK ? 0x3 : 0x0 < this.disabledTimer ? 0xa0 + parseInt(0x20 * (0x1 - this.disabledTimer / KoopaObject.ENABLE_FADE_TIME)) : 0x0;
+        if (this.sprite.INDEX instanceof Array)
+            for (var s = this.sprite.INDEX, i = 0; i < s.length; i++)
+                for (var j = 0; j < s[i].length; j++) {
+                    var index = s[0x3 !== mode ? i : s.length - 1 - i][j];
+                    switch (this.variant) {
+                        case 1:
+                            index += KoopaObject.VARIANT_OFFSET;
+                            break;
+                        case 2:
+                            index += KoopaObject.VARIANT_2_OFFSET;
+                            break;
+                    }
+                    spriteList.push({
+                        'pos': vec2.add(this.pos, vec2.make(j, i)),
+                        'reverse': !this.dir,
+                        'index': index,
+                        'mode': mode
+                    });
+                } else {
+            index = this.sprite.INDEX;
+            switch (this.variant) {
+                case 1:
+                    index += KoopaObject.VARIANT_OFFSET;
+                    break;
+                case 2:
+                    index += KoopaObject.VARIANT_2_OFFSET;
+                    break;
+            }
+            spriteList.push({
+                'pos': this.pos,
+                'reverse': !this.dir,
+                'index': index,
+                'mode': mode
+            });
+        }
+    }
+};
+KoopaObject.prototype.play = GameObject.prototype.play;
+GameObject.REGISTER_OBJECT(KoopaObject);
+"use strict";
+
+function Koopa2Object(game, level, zone, pos, oid, fly, variant) {
+    GameObject.call(this, game, level, zone, pos);
+    this.oid = oid;
+    this.variant = isNaN(parseInt(variant)) ? 0x0 : parseInt(variant);
+    this.setState(parseInt(fly) ? Koopa2Object.STATE.FLY : Koopa2Object.STATE.RUN);
+    this.bonkTimer = this.anim = 0x0;
+    this.loc = [this.pos.y + 0.5 * Koopa2Object.FLY_DISTANCE, this.pos.y - 0.5 * Koopa2Object.FLY_DISTANCE];
+    this.dim = vec2.make(0x1, 0x1);
+    this.checkDim = vec2.make(0.5, 0x1);
+    this.fallSpeed = this.moveSpeed = 0x0;
+    this.disabled = this.grounded = false;
+    this.disabledTimer = 0x0;
+    this.proxHit = false;
+    this.immuneTimer = 0x0;
+    this.rev = false;
+    this.dir = true;
+    this.kicker = -1;
+    this.disable();
+}
+Koopa2Object.ASYNC = false;
+Koopa2Object.ID = 0x13;
+Koopa2Object.NAME = "KOOPA TROOPA RED";
+Koopa2Object.FLY_DISTANCE = 0x3;
+Koopa2Object.FLY_ACCEL = 0.0025;
+Koopa2Object.FLY_SPEED_MAX = 0.075;
+Koopa2Object.CHECK_DIST = 0.1;
+Koopa2Object.SPRITE = {};
+Koopa2Object.SPRITE_LIST = [{
+    'NAME': "FLY0",
+    'ID': 0x0,
+    'INDEX': [
+        [0x64],
+        [0x54]
+    ]
+}, {
+    'NAME': "FLY1",
+    'ID': 0x1,
+    'INDEX': [
+        [0x65],
+        [0x55]
+    ]
+}, {
+    'NAME': "RUN0",
+    'ID': 0x2,
+    'INDEX': [
+        [0x62],
+        [0x52]
+    ]
+}, {
+    'NAME': "RUN1",
+    'ID': 0x3,
+    'INDEX': [
+        [0x63],
+        [0x53]
+    ]
+}, {
+    'NAME': "TRANSFORM",
+    'ID': 0x4,
+    'INDEX': 0x61
+}, {
+    'NAME': "SHELL",
+    'ID': 0x5,
+    'INDEX': 0x60
+}];
+for (var i = 0x0; i < Koopa2Object.SPRITE_LIST.length; i++) Koopa2Object.SPRITE[Koopa2Object.SPRITE_LIST[i].NAME] = Koopa2Object.SPRITE_LIST[i], Koopa2Object.SPRITE[Koopa2Object.SPRITE_LIST[i].ID] = Koopa2Object.SPRITE_LIST[i];
+Koopa2Object.STATE = {};
+Koopa2Object.STATE_LIST = [{
+    'NAME': "FLY",
+    'ID': 0x0,
+    'SPRITE': [Koopa2Object.SPRITE.FLY0, Koopa2Object.SPRITE.FLY1]
+}, {
+    'NAME': "RUN",
+    'ID': 0x1,
+    'SPRITE': [Koopa2Object.SPRITE.RUN0, Koopa2Object.SPRITE.RUN1]
+}, {
+    'NAME': "TRANSFORM",
+    'ID': 0x2,
+    'SPRITE': [Koopa2Object.SPRITE.SHELL, Koopa2Object.SPRITE.TRANSFORM]
+}, {
+    'NAME': "SHELL",
+    'ID': 0x3,
+    'SPRITE': [Koopa2Object.SPRITE.SHELL]
+}, {
+    'NAME': "SPIN",
+    'ID': 0x4,
+    'SPRITE': [Koopa2Object.SPRITE.SHELL]
+}, {
+    'NAME': "BONK",
+    'ID': 0x51,
+    'SPRITE': []
+}];
+for (var i = 0x0; i < Koopa2Object.STATE_LIST.length; i++) Koopa2Object.STATE[Koopa2Object.STATE_LIST[i].NAME] = Koopa2Object.STATE_LIST[i], Koopa2Object.STATE[Koopa2Object.STATE_LIST[i].ID] = Koopa2Object.STATE_LIST[i];
+Koopa2Object.prototype.update = KoopaObject.prototype.update;
+Koopa2Object.prototype.step = function () {
+    if (this.disabled) this.proximity();
+    else if (0x0 < this.disabledTimer && this.disabledTimer--, this.state === Koopa2Object.STATE.BONK) this.bonkTimer++ > KoopaObject.BONK_TIME || 0x0 > this.pos.y + this.dim.y ? this.destroy() : (this.pos = vec2.add(this.pos, vec2.make(this.moveSpeed, this.fallSpeed)), this.moveSpeed *= KoopaObject.BONK_DECEL, this.fallSpeed = Math.max(this.fallSpeed - KoopaObject.FALL_SPEED_ACCEL, -KoopaObject.BONK_FALL_SPEED));
+    else {
+        this.anim++;
+        this.sprite = this.state.SPRITE[parseInt(this.anim / KoopaObject.ANIMATION_RATE) % this.state.SPRITE.length];
+        if (this.state === Koopa2Object.STATE.SHELL || this.state === Koopa2Object.STATE.TRANSFORM) --this.transformTimer < KoopaObject.TRANSFORM_THRESHOLD && this.setState(Koopa2Object.STATE.TRANSFORM), 0x0 >= this.transformTimer && this.setState(Koopa2Object.STATE.RUN);
+        0x0 < this.immuneTimer && this.immuneTimer--;
+        this.control();
+        this.physics();
+        this.interaction();
+        this.sound();
+        0x0 > this.pos.y && this.destroy();
+    }
+};
+Koopa2Object.prototype.control = function () {
+    this.state === Koopa2Object.STATE.FLY && (this.moveSpeed = this.dir ? -KoopaObject.MOVE_SPEED_MAX : KoopaObject.MOVE_SPEED_MAX);
+    this.state === Koopa2Object.STATE.RUN && (this.grounded && !this.checkGround() && (this.dir = !this.dir), this.moveSpeed = this.dir ? -KoopaObject.MOVE_SPEED_MAX : KoopaObject.MOVE_SPEED_MAX);
+    this.state === Koopa2Object.STATE.SPIN && (this.moveSpeed = this.dir ? -KoopaObject.SHELL_MOVE_SPEED_MAX : KoopaObject.SHELL_MOVE_SPEED_MAX);
+    if (this.state === Koopa2Object.STATE.SHELL || this.state === Koopa2Object.STATE.TRANSFORM) this.moveSpeed = 0x0;
+};
+Koopa2Object.prototype.physics = function () {
+    if (this.state === Koopa2Object.STATE.FLY) {
+        if (this.rev) {
+            this.fallSpeed = Math.min(Koopa2Object.FLY_SPEED_MAX, this.fallSpeed + Koopa2Object.FLY_ACCEL);
+            this.pos.y += this.fallSpeed;
+            if (this.pos.y >= this.loc[0]) { this.rev = false; }
+        }
+        else {
+            this.fallSpeed = Math.max(-Koopa2Object.FLY_SPEED_MAX, this.fallSpeed - Koopa2Object.FLY_ACCEL);
+            this.pos.y += this.fallSpeed;
+            if (this.pos.y <= this.loc[1]) { this.rev = true; }
+        }
+        return;
+    }
+
+    if (this.grounded) {
+        this.fallSpeed = 0;
+    }
+    this.fallSpeed = Math.max(this.fallSpeed - KoopaObject.FALL_SPEED_ACCEL, -KoopaObject.FALL_SPEED_MAX);
+
+    var movx = vec2.add(this.pos, vec2.make(this.moveSpeed, 0.));
+    var movy = vec2.add(this.pos, vec2.make(this.moveSpeed, this.fallSpeed));
+
+    var ext1 = vec2.make(this.moveSpeed >= 0 ? this.pos.x : this.pos.x + this.moveSpeed, this.fallSpeed <= 0 ? this.pos.y : this.pos.y + this.fallSpeed);
+    var ext2 = vec2.make(this.dim.y + Math.abs(this.moveSpeed), this.dim.y + Math.abs(this.fallSpeed));
+    var tiles = this.game.world.getZone(this.level, this.zone).getTiles(ext1, ext2);
+    var tdim = vec2.make(1., 1.);
+
+    var changeDir = false;
+    this.grounded = false;
+    for (var i = 0; i < tiles.length; i++) {
+        var tile = tiles[i];
+        if (!tile.definition.COLLIDE) { continue; }
+
+        var hitx = squar.intersection(tile.pos, tdim, movx, this.dim);
+
+        if (hitx) {
+            if (this.state === Koopa2Object.STATE.SPIN) tile.definition.TRIGGER(this.game, this.pid, tile, this.level, this.zone, tile.pos.x, tile.pos.y, td32.TRIGGER.TYPE.SHELL);
+
+            if (this.pos.x + this.dim.x <= tile.pos.x && movx.x + this.dim.x > tile.pos.x) {
+                movx.x = tile.pos.x - this.dim.x;
+                movy.x = movx.x;
+                this.moveSpeed = 0;
+                changeDir = true;
+            }
+            else if (this.pos.x >= tile.pos.x + tdim.x && movx.x < tile.pos.x + tdim.x) {
+                movx.x = tile.pos.x + tdim.x;
+                movy.x = movx.x;
+                this.moveSpeed = 0;
+                changeDir = true;
+            }
+        }
+    }
+
+    for (var i = 0; i < tiles.length; i++) {
+        var tile = tiles[i];
+        if (!tile.definition.COLLIDE) { continue; }
+
+        var hity = squar.intersection(tile.pos, tdim, movy, this.dim);
+
+        if (hity) {
+            if (this.pos.y >= tile.pos.y + tdim.y && movy.y < tile.pos.y + tdim.y) {
+                movy.y = tile.pos.y + tdim.y;
+                this.fallSpeed = 0;
+                this.grounded = true;
+            }
+            else if (this.pos.y + this.dim.y <= tile.pos.y && movy.y + this.dim.y > tile.pos.y) {
+                movy.y = tile.pos.y - this.dim.y;
+                this.fallSpeed = 0;
+            }
+        }
+    }
+    this.pos = vec2.make(movx.x, movy.y);
+    if (changeDir) { this.dir = !this.dir; }
+};
+Koopa2Object.prototype.interaction = function () {
+    if (this.state === Koopa2Object.STATE.SPIN)
+        for (var _0x55c0e3 = 0x0; _0x55c0e3 < this.game.objects.length; _0x55c0e3++) {
+            var _0xa2c7b4 = this.game.objects[_0x55c0e3];
+            _0xa2c7b4 === this || _0xa2c7b4 instanceof PlayerObject || !_0xa2c7b4.isTangible() || !_0xa2c7b4.damage || _0xa2c7b4.level === this.level && _0xa2c7b4.zone === this.zone && squar.intersection(_0xa2c7b4.pos, _0xa2c7b4.dim, this.pos, this.dim) && _0xa2c7b4.damage();
+        }
+};
+Koopa2Object.prototype.sound = GameObject.prototype.sound;
+Koopa2Object.prototype.checkGround = function () {
+    var inf = this.dir ? vec2.add(this.pos, vec2.make(-Koopa2Object.CHECK_DIST, 0x0)) : vec2.add(this.pos, vec2.make(Koopa2Object.CHECK_DIST + this.dim.x, 0x0));
+    inf.y -= 1.5;
+    return this.game.world.getZone(this.level, this.zone).getTile(inf).definition.COLLIDE;
+};
+Koopa2Object.prototype.proximity = KoopaObject.prototype.proximity;
+Koopa2Object.prototype.enable = KoopaObject.prototype.enable;
+Koopa2Object.prototype.disable = KoopaObject.prototype.disable;
+Koopa2Object.prototype.damage = KoopaObject.prototype.damage;
+Koopa2Object.prototype.bonk = function () {
+    this.dead || (this.setState(Koopa2Object.STATE.BONK), this.moveSpeed = KoopaObject.BONK_IMP.x, this.fallSpeed = KoopaObject.BONK_IMP.y, this.dead = true, this.play("kick.mp3", 0x1, 0.04));
+};
+Koopa2Object.prototype.stomped = function (dir, kicker) {
+    if (this.state === Koopa2Object.STATE.FLY) this.setState(Koopa2Object.STATE.RUN);
+    else if (this.state === Koopa2Object.STATE.RUN) this.setState(Koopa2Object.STATE.SHELL), this.transformTimer = KoopaObject.TRANSFORM_TIME;
+    else if (this.state === Koopa2Object.STATE.SPIN) this.setState(Koopa2Object.STATE.SHELL), this.transformTimer = KoopaObject.TRANSFORM_TIME;
+    else if (this.state === Koopa2Object.STATE.SHELL || this.state === Koopa2Object.STATE.TRANSFORM) this.setState(Koopa2Object.STATE.SPIN), this.dir = dir, this.kicker = kicker;
+    this.state === Koopa2Object.STATE.SPIN ? this.play("kick.mp3", 0x1, 0.04) : this.play("stomp.mp3", 0x1, 0.04);
+};
+Koopa2Object.prototype.playerCollide = function (player) {
+    if (!(this.dead || this.garbage)) {
+        if (this.state === Koopa2Object.STATE.SHELL || this.state === Koopa2Object.STATE.TRANSFORM) {
+            var dir = 0x0 < player.pos.x - this.pos.x;
+            this.stomped(dir, player.pid);
+            this.game.out.push(NET020.encode(this.level, this.zone, this.oid, dir ? 0x10 : 0x11));
+            this.immuneTimer = KoopaObject.PLAYER_IMMUNE_TIME;
+        } else {
+            if (0x0 >= this.immuneTimer) player.damage(this);
+        }
+    }
+};
+Koopa2Object.prototype.playerStomp = KoopaObject.prototype.playerStomp;
+Koopa2Object.prototype.playerBump = KoopaObject.prototype.playerBump;
+Koopa2Object.prototype.kill = KoopaObject.prototype.kill;
+Koopa2Object.prototype.destroy = KoopaObject.prototype.destroy;
+Koopa2Object.prototype.isTangible = KoopaObject.prototype.isTangible;
+Koopa2Object.prototype.setState = KoopaObject.prototype.setState;
+Koopa2Object.prototype.draw = function (sprites) {
+    if (!this.disabled) {
+        var mod;
+        if(this.state === Koopa2Object.STATE.BONK) { mod = 0x03; }
+        else if(this.disabledTimer > 0) { mod = 0xA0 + parseInt((1.-(this.disabledTimer/KoopaObject.ENABLE_FADE_TIME))*32.); }
+        else { mod = 0x00; }
+
+        if (this.sprite.INDEX instanceof Array)
+            for (var s = this.sprite.INDEX, i = 0; i < s.length; i++)
+                for (var j = 0; j < s[i].length; j++) {
+                    var sp = s[3 !== mod ? i : s.length - 1 - i][j];
+                    switch (this.variant) {
+                        case 1:
+                            sp += KoopaObject.VARIANT_OFFSET;
+                    }
+                    sprites.push({
+                        'pos': vec2.add(this.pos, vec2.make(j, i)),
+                        'reverse': !this.dir,
+                        'index': sp,
+                        'mode': mod
+                    });
+                } else {
+            sp = this.sprite.INDEX;
+            switch (this.variant) {
+                case 1:
+                    sp += KoopaObject.VARIANT_OFFSET;
+            }
+            sprites.push({
+                'pos': this.pos,
+                'reverse': !this.dir,
+                'index': sp,
+                'mode': mod
+            });
+        }
+    }
+};
+Koopa2Object.prototype.play = GameObject.prototype.play;
+GameObject.REGISTER_OBJECT(Koopa2Object);
+
+"use strict";
+
+function FlyingFishObject(game, level, zone, pos, oid, delay, impulse) {
+    GameObject.call(this, game, level, zone, pos);
+    this.oid = oid;
+    this.setState(FlyingFishObject.STATE.IDLE);
+    this.delay = isNaN(parseInt(delay)) ? FlyingFishObject.DELAY_DEFAULT : parseInt(delay);
+    this.impulse = isNaN(parseFloat(impulse)) ? 0x1 : parseFloat(impulse);
+    this.anim = 0x0;
+    this.disabled = false;
+    this.delayTimer = this.delay;
+    this.bonkTimer = 0x0;
+    this.pos.x += FlyingFishObject.SOFFSET.x;
+    this.loc = vec2.copy(this.pos);
+    this.moveSpeed = this.fallSpeed = 0x0;
+    this.dim = vec2.make(0.7, 0.7);
+    this.dir = true;
+}
+FlyingFishObject.ASYNC = false;
+FlyingFishObject.ID = 0x15;
+FlyingFishObject.NAME = "FLYING FISH";
+FlyingFishObject.ANIMATION_RATE = 0x3;
+FlyingFishObject.BONK_TIME = 0x5a;
+FlyingFishObject.BONK_IMP = vec2.make(0.25, 0.4);
+FlyingFishObject.BONK_DECEL = 0.925;
+FlyingFishObject.BONK_FALL_SPEED = 0.5;
+FlyingFishObject.BONK_FALL_ACCEL = 0.085;
+FlyingFishObject.DELAY_DEFAULT = 0x96;
+FlyingFishObject.IMPULSE = vec2.make(0.225, 0.335);
+FlyingFishObject.DRAG = 0.996;
+FlyingFishObject.FALL_SPEED_ACCEL = 0.0055;
+FlyingFishObject.SOFFSET = vec2.make(0.15, 0.15)
+FlyingFishObject.SPRITE = {};
+FlyingFishObject.SPRITE_LIST = [{
+    'NAME': "IDLE0",
+    'ID': 0x0,
+    'INDEX': 0xce
+}, {
+    'NAME': "IDLE1",
+    'ID': 0x1,
+    'INDEX': 0xcf
+}];
+for (var i = 0x0; i < FlyingFishObject.SPRITE_LIST.length; i++) FlyingFishObject.SPRITE[FlyingFishObject.SPRITE_LIST[i].NAME] = FlyingFishObject.SPRITE_LIST[i], FlyingFishObject.SPRITE[FlyingFishObject.SPRITE_LIST[i].ID] = FlyingFishObject.SPRITE_LIST[i];
+FlyingFishObject.STATE = {};
+FlyingFishObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [FlyingFishObject.SPRITE.IDLE0, FlyingFishObject.SPRITE.IDLE1]
+}, {
+    'NAME': "BONK",
+    'ID': 0x51,
+    'SPRITE': []
+}];
+for (var i = 0x0; i < FlyingFishObject.STATE_LIST.length; i++) FlyingFishObject.STATE[FlyingFishObject.STATE_LIST[i].NAME] = FlyingFishObject.STATE_LIST[i], FlyingFishObject.STATE[FlyingFishObject.STATE_LIST[i].ID] = FlyingFishObject.STATE_LIST[i];
+FlyingFishObject.prototype.update = function (_0x31e5a7) {
+    switch (_0x31e5a7) {
+        case 0x1:
+            this.bonk();
+    }
+};
+FlyingFishObject.prototype.step = function () {
+    this.state === FlyingFishObject.STATE.BONK ? this.bonkTimer++ > FlyingFishObject.BONK_TIME || 0x0 > this.pos.y + this.dim.y ? this.destroy() : (this.pos = vec2.add(this.pos, vec2.make(this.moveSpeed, this.fallSpeed)), this.moveSpeed *= FlyingFishObject.BONK_DECEL, this.fallSpeed = Math.max(this.fallSpeed - FlyingFishObject.BONK_FALL_ACCEL, -FlyingFishObject.BONK_FALL_SPEED)) : (this.anim++, this.sprite = this.state.SPRITE[parseInt(this.anim / FlyingFishObject.ANIMATION_RATE) % this.state.SPRITE.length], 0x0 < this.delayTimer ? this.delayTimer-- : this.jump(), this.physics(), this.sound());
+};
+FlyingFishObject.prototype.physics = function () {
+    this.pos.y > this.loc.y || 0x0 < this.fallSpeed ? (this.fallSpeed = (this.fallSpeed - FlyingFishObject.FALL_SPEED_ACCEL) * FlyingFishObject.DRAG, this.pos.x += this.moveSpeed * FlyingFishObject.DRAG, this.pos.y += this.fallSpeed) : this.disable();
+};
+FlyingFishObject.prototype.sound = GameObject.prototype.sound;
+FlyingFishObject.prototype.jump = function () {
+    this.enable();
+    this.pos = vec2.copy(this.loc);
+    this.fallSpeed = FlyingFishObject.IMPULSE.y * this.impulse;
+    this.moveSpeed = FlyingFishObject.IMPULSE.x * this.impulse;
+    this.delayTimer = this.delay;
+};
+FlyingFishObject.prototype.disable = function () {
+    this.disabled = true;
+};
+FlyingFishObject.prototype.enable = function () {
+    this.disabled = false;
+};
+FlyingFishObject.prototype.damage = function (_0x491a38) {
+    this.dead || (this.bonk(), this.game.out.push(NET020.encode(this.level, this.zone, this.oid, 0x1)));
+};
+FlyingFishObject.prototype.bonk = function () {
+    this.dead || (this.setState(FlyingFishObject.STATE.BONK), this.moveSpeed = FlyingFishObject.BONK_IMP.x, this.fallSpeed = FlyingFishObject.BONK_IMP.y, this.dead = true, this.play("kick.mp3", 0x1, 0.04));
+};
+FlyingFishObject.prototype.playerCollide = function (_0x28a0cf) {
+    this.dead || this.garbage || _0x28a0cf.damage(this);
+};
+FlyingFishObject.prototype.playerStomp = function (_0x2eb09b) {
+    this.dead || this.garbage || (this.bonk(), _0x2eb09b.bounce(), this.game.out.push(NET020.encode(this.level, this.zone, this.oid, 0x1)));
+};
+FlyingFishObject.prototype.playerBump = function (_0x5e66c8) {
+    this.playerCollide(_0x5e66c8);
+};
+FlyingFishObject.prototype.kill = function () { };
+FlyingFishObject.prototype.isTangible = GameObject.prototype.isTangible;
+FlyingFishObject.prototype.destroy = GameObject.prototype.destroy;
+FlyingFishObject.prototype.setState = function (_0x2afd8b) {
+    _0x2afd8b !== this.state && (this.state = _0x2afd8b, 0x0 < _0x2afd8b.SPRITE.length && (this.sprite = _0x2afd8b.SPRITE[0x0]), this.anim = 0x0);
+};
+FlyingFishObject.prototype.draw = function (_0x45125b) {
+    if (!this.disabled) {
+        var _0x455f65;
+        _0x455f65 = this.state === FlyingFishObject.STATE.BONK ? 0x3 : 0x0;
+        _0x45125b.push({
+            'pos': vec2.subtract(this.pos, FlyingFishObject.SOFFSET),
+            'reverse': this.dir,
+            'index': this.sprite.INDEX,
+            'mode': _0x455f65
+        });
+    }
+};
+FlyingFishObject.prototype.play = GameObject.prototype.play;
+GameObject.REGISTER_OBJECT(FlyingFishObject);
+"use strict";
+
+function HammerBroObject(game, level, zone, pos, oid, phase, variant) {
+    GameObject.call(this, game, level, zone, pos);
+    this.oid = oid;
+    this.setState(HammerBroObject.STATE.IDLE);
+    this.bonkTimer = this.anim = 0;
+    this.dim = vec2.make(1., 1.5);
+    this.fallSpeed = this.moveSpeed = 0;
+    this.disabled = this.grounded = false;
+    this.disabledTimer = 0;
+    this.proxHit = false;
+    this.hammer = undefined;
+    this.loc = 1 === parseInt(phase) ? [this.pos.x + HammerBroObject.MOVE_AREA, this.pos.x] : [this.pos.x, this.pos.x - HammerBroObject.MOVE_AREA];
+    this.groundTimer = this.double = this.attackAnimTimer = this.attackTimer = 0;
+    this.jumpTimer = -1;
+    this.reverse = false;
+    this.dir = true;
+    this.variant = isNaN(parseInt(variant)) ? 0 : parseInt(variant);
+    this.disable();
+}
+HammerBroObject.ASYNC = false;
+HammerBroObject.ID = 0x31;
+HammerBroObject.NAME = "HAMMER BRO";
+HammerBroObject.ANIMATION_RATE = 0x5;
+HammerBroObject.ENABLE_FADE_TIME = 0xf;
+HammerBroObject.ENABLE_DIST = 0x21;
+HammerBroObject.BONK_TIME = 0x5a;
+HammerBroObject.BONK_IMP = vec2.make(0.25, 0.4);
+HammerBroObject.BONK_DECEL = 0.925;
+HammerBroObject.BONK_FALL_SPEED = 0.5;
+HammerBroObject.MOVE_SPEED_MAX = 0.095;
+HammerBroObject.JUMP_DELAY = 0x37;
+HammerBroObject.MOVE_AREA = 0x4;
+HammerBroObject.JUMP_LENGTH = 0x8;
+HammerBroObject.JUMP_DECEL = 0.009;
+HammerBroObject.ATTACK_DELAY = 30 // New line; 0.5 + (30 * 0.0333) ~= 1.5sec
+HammerBroObject.DOUBLE_RATE = 0x5;
+HammerBroObject.ATTACK_ANIM_LENGTH = 0xd;
+HammerBroObject.PROJ_OFFSET = vec2.make(0.5, 1.25);
+HammerBroObject.FALL_SPEED_MAX = 0.3;
+HammerBroObject.FALL_SPEED_ACCEL = 0.085;
+HammerBroObject.VARIANT_OFFSET = 0xc0;
+HammerBroObject.SPRITE = {};
+HammerBroObject.SPRITE_LIST = [{
+    'NAME': "IDLE0",
+    'ID': 0x0,
+    'INDEX': [
+        [0x6e],
+        [0x5e]
+    ]
+}, {
+    'NAME': "IDLE1",
+    'ID': 0x1,
+    'INDEX': [
+        [0x6d],
+        [0x5d]
+    ]
+}, {
+    'NAME': "ATTACK",
+    'ID': 0x2,
+    'INDEX': [
+        [0x6c],
+        [0x5c]
+    ]
+}];
+for (var i = 0; i < HammerBroObject.SPRITE_LIST.length; i++) HammerBroObject.SPRITE[HammerBroObject.SPRITE_LIST[i].NAME] = HammerBroObject.SPRITE_LIST[i], HammerBroObject.SPRITE[HammerBroObject.SPRITE_LIST[i].ID] = HammerBroObject.SPRITE_LIST[i];
+HammerBroObject.STATE = {};
+HammerBroObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [HammerBroObject.SPRITE.IDLE0, HammerBroObject.SPRITE.IDLE1]
+}, {
+    'NAME': "FALL",
+    'ID': 0x1,
+    'SPRITE': [HammerBroObject.SPRITE.IDLE1]
+}, {
+    'NAME': "ATTACK",
+    'ID': 0x2,
+    'SPRITE': [HammerBroObject.SPRITE.ATTACK]
+}, {
+    'NAME': "BONK",
+    'ID': 0x51,
+    'SPRITE': []
+}];
+for (var i = 0; i < HammerBroObject.STATE_LIST.length; i++) HammerBroObject.STATE[HammerBroObject.STATE_LIST[i].NAME] = HammerBroObject.STATE_LIST[i], HammerBroObject.STATE[HammerBroObject.STATE_LIST[i].ID] = HammerBroObject.STATE_LIST[i];
+HammerBroObject.prototype.update = function (_0x3402c2) {
+    switch (_0x3402c2) {
+        case 0x1:
+            this.bonk();
+            break;
+        case 0xa0:
+            this.enable();
+    }
+};
+HammerBroObject.prototype.step = function () {
+    this.disabled ? this.proximity() : (0x0 < this.disabledTimer && this.disabledTimer--, this.state === HammerBroObject.STATE.BONK ? this.bonkTimer++ > HammerBroObject.BONK_TIME || 0x0 > this.pos.y + this.dim.y ? this.destroy() : (this.pos = vec2.add(this.pos, vec2.make(this.moveSpeed, this.fallSpeed)), this.moveSpeed *= HammerBroObject.BONK_DECEL, this.fallSpeed = Math.max(this.fallSpeed - HammerBroObject.FALL_SPEED_ACCEL, -HammerBroObject.BONK_FALL_SPEED)) : (this.anim++, this.sprite = this.state.SPRITE[parseInt(this.anim / HammerBroObject.ANIMATION_RATE) % this.state.SPRITE.length], this.face(), this.control(), this.physics(), this.sound(), 0x0 < this.attackAnimTimer ? (this.setState(HammerBroObject.STATE.ATTACK), this.attach(), this.attackAnimTimer--) : this.attackTimer++ > HammerBroObject.ATTACK_DELAY ? this.attack() : this.hammer = undefined, 0x0 > this.pos.y && this.destroy()));
+};
+HammerBroObject.prototype.control = function () {
+    this.grounded ? (HammerBroObject.JUMP_DELAY < this.groundTimer++ && (this.groundTimer = this.jumpTimer = 0x0), this.pos.x > this.loc[0x0] ? this.reverse = true : this.pos.x < this.loc[0x1] && (this.reverse = false)) : this.jumpTimer > HammerBroObject.JUMP_LENGTH && (this.jumpTimer = -0x1);
+    this.grounded ? this.setState(HammerBroObject.STATE.IDLE) : this.setState(HammerBroObject.STATE.FALL);
+    this.moveSpeed = 0.75 * this.moveSpeed + 0.25 * (this.reverse ? -HammerBroObject.MOVE_SPEED_MAX : HammerBroObject.MOVE_SPEED_MAX);
+};
+HammerBroObject.prototype.physics = function() {
+    if(this.jumpTimer !== -1) {
+        this.fallSpeed = HammerBroObject.FALL_SPEED_MAX - (this.jumpTimer*HammerBroObject.JUMP_DECEL);
+        this.jumpTimer++;
+        this.grounded = false;
+    }
+    else {
+        if(this.grounded) { this.fallSpeed = 0; }
+        this.fallSpeed = Math.max(this.fallSpeed - HammerBroObject.FALL_SPEED_ACCEL, -HammerBroObject.FALL_SPEED_MAX);
+    }
+    
+    var movx = vec2.add(this.pos, vec2.make(this.moveSpeed, 0.));
+    var movy = vec2.add(this.pos, vec2.make(this.moveSpeed, this.fallSpeed));
+    
+    var ext1 = vec2.make(this.moveSpeed>=0?this.pos.x:this.pos.x+this.moveSpeed, this.fallSpeed<=0?this.pos.y:this.pos.y+this.fallSpeed);
+    var ext2 = vec2.make(this.dim.y+Math.abs(this.moveSpeed), this.dim.y+Math.abs(this.fallSpeed));
+    var tiles = this.game.world.getZone(this.level, this.zone).getTiles(ext1, ext2);
+    var tdim = vec2.make(1., 1.);
+    
+    this.grounded = false;
+    for(var i=0;i<tiles.length;i++) {
+        var tile = tiles[i];
+        if(!tile.definition.COLLIDE || tile.definition.HIDDEN) { continue; }
+        
+        var hitx = squar.intersection(tile.pos, tdim, movx, this.dim);
+        
+        if(hitx) {
+            if(this.pos.x + this.dim.x <= tile.pos.x && movx.x + this.dim.x > tile.pos.x) {
+                movx.x = tile.pos.x - this.dim.x;
+                movy.x = movx.x;
+                this.moveSpeed = 0;
+            }
+            else if(this.pos.x >= tile.pos.x + tdim.x && movx.x < tile.pos.x + tdim.x) {
+                movx.x = tile.pos.x + tdim.x;
+                movy.x = movx.x;
+                this.moveSpeed = 0;
+            }
+        }
+    }
+        
+    for(var i=0;i<tiles.length;i++) {
+        var tile = tiles[i];
+        if(!tile.definition.COLLIDE || tile.definition.HIDDEN) { continue; }
+        
+        var hity = squar.intersection(tile.pos, tdim, movy, this.dim);
+        
+        if(hity) {
+            if(this.pos.y >= tile.pos.y + tdim.y && movy.y < tile.pos.y + tdim.y) {
+                movy.y = tile.pos.y + tdim.y;
+                this.fallSpeed = 0;
+                this.grounded = true;
+            }
+            else if(this.pos.y + this.dim.y <= tile.pos.y && movy.y + this.dim.y > tile.pos.y) {
+                movy.y = tile.pos.y - this.dim.y;
+                this.jumpTimer = -1;
+                this.fallSpeed = 0;
+            }
+        }
+    }
+    this.pos = vec2.make(movx.x, movy.y);
+};
+HammerBroObject.prototype.proximity = function () {
+    var player = this.game.getPlayer();
+    player && !player.dead && player.level === this.level && player.zone === this.zone && !this.proxHit && vec2.distance(player.pos, this.pos) < HammerBroObject.ENABLE_DIST && (this.game.out.push(NET020.encode(this.level, this.zone, this.oid, 0xa0)), this.proxHit = true);
+};
+HammerBroObject.prototype.face = function () {
+    for (var dist, i = 0x0; i < this.game.objects.length; i++) {
+        var obj = this.game.objects[i];
+        obj instanceof PlayerObject && obj.level === this.level && obj.zone === this.zone && obj.isTangible() && (!dist || Math.abs(dist) > vec2.distance(obj.pos, this.pos)) && (dist = obj.pos.x - this.pos.x);
+    }
+    this.dir = dist ? 0x0 > dist : true;
+};
+HammerBroObject.prototype.sound = GameObject.prototype.sound;
+HammerBroObject.prototype.enable = function () {
+    this.disabled && (this.disabled = false, this.disabledTimer = HammerBroObject.ENABLE_FADE_TIME);
+};
+HammerBroObject.prototype.disable = function () {
+    this.disabled = true;
+};
+HammerBroObject.prototype.attack = function () {
+    this.attackAnimTimer = HammerBroObject.ATTACK_ANIM_LENGTH;
+    this.attackTimer = 0x0;
+    this.hammer = this.game.createObject(HammerObject.ID, this.level, this.zone, vec2.add(this.pos, HammerBroObject.PROJ_OFFSET), [this]);
+    ++this.double > HammerBroObject.DOUBLE_RATE && (this.double = 0x0, this.attackTimer = HammerBroObject.ATTACK_DELAY);
+};
+HammerBroObject.prototype.attach = function () {
+    this.hammer && (this.hammer.pos = vec2.add(this.pos, HammerBroObject.PROJ_OFFSET), this.hammer.dir = !this.dir);
+};
+HammerBroObject.prototype.playerCollide = function (_0x4b48ff) {
+    this.dead || this.garbage || _0x4b48ff.damage(this);
+};
+HammerBroObject.prototype.playerStomp = function (_0x382396) {
+    this.dead || this.garbage || (this.bonk(), _0x382396.bounce(), this.game.out.push(NET020.encode(this.level, this.zone, this.oid, 0x1)));
+};
+HammerBroObject.prototype.playerBump = HammerBroObject.prototype.playerCollide;
+HammerBroObject.prototype.damage = function (_0x23a76d) {
+    this.dead || (this.bonk(), NET020.encode(this.level, this.zone, this.oid, 0x1));
+};
+HammerBroObject.prototype.bonk = function () {
+    this.dead || (this.setState(HammerBroObject.STATE.BONK), this.moveSpeed = HammerBroObject.BONK_IMP.x, this.fallSpeed = HammerBroObject.BONK_IMP.y, this.dead = true, this.play("kick.mp3", 0x1, 0.04));
+};
+HammerBroObject.prototype.kill = function () { };
+HammerBroObject.prototype.isTangible = GameObject.prototype.isTangible;
+HammerBroObject.prototype.destroy = GameObject.prototype.destroy;
+HammerBroObject.prototype.setState = function (_0x44adae) {
+    _0x44adae !== this.state && (this.state = _0x44adae, 0x0 < _0x44adae.SPRITE.length && (this.sprite = _0x44adae.SPRITE[0x0]), this.anim = 0x0);
+};
+HammerBroObject.prototype.draw = function (spriteList) {
+    if (!this.disabled) {
+        var mode = this.state === HammerBroObject.STATE.BONK ? 0x3 : this.disabledTimer > 0 ? 0xa0 + parseInt(0x20 * (0x1 - this.disabledTimer / HammerBroObject.ENABLE_FADE_TIME)) : 0x0;
+        if (this.sprite.INDEX instanceof Array) {
+            for (var s = this.sprite.INDEX, i = 0; i < s.length; i++) {
+                for (var j = 0; j < s[i].length; j++) {
+                    var index = s[0x3 !== mode ? i : s.length - 1 - i][j];
+                    switch (this.variant) {
+                        case 1:
+                            index += HammerBroObject.VARIANT_OFFSET;
+                            break;
+                    }
+                    spriteList.push({
+                        'pos': vec2.add(this.pos, vec2.make(j, i)),
+                        'reverse': !this.dir,
+                        'index': index,
+                        'mode': mode
+                    });
+                }
+            }
+        } else {
+            index = this.sprite.INDEX;
+            switch (this.variant) {
+                case 1:
+                    index += HammerBroObject.VARIANT_OFFSET;
+                    break;
+            }
+            spriteList.push({
+                'pos': this.pos,
+                'reverse': !this.dir,
+                'index': index,
+                'mode': mode
+            });
+        }
+    }
+};
+HammerBroObject.prototype.play = GameObject.prototype.play;
+GameObject.REGISTER_OBJECT(HammerBroObject);
+"use strict";
+
+function BowserObject(game, level, zone, pos, oid, attackType, fireDirection, variant) {
+    GameObject.call(this, game, level, zone, pos);
+    switch (parseInt(attackType)) {
+        case -1:
+            this.fire = false;
+            this.hammer = false;
+            break;
+        case 1:
+            this.fire = false;
+            this.hammer = true;
+            break;
+        case 2:
+            this.fire = true;
+            this.hammer = true;
+            break;
+        default:
+            this.fire = true;
+            this.hammer = false;
+            break;
+    }
+    this.fireDirection = isNaN(parseInt(fireDirection)) ? 0 : parseInt(fireDirection);
+    this.variant = isNaN(parseInt(variant)) ? 0 : parseInt(variant);
+    this.oid = oid;
+    this.state = BowserObject.STATE.RUN;
+    this.sprite = this.state.SPRITE[0];
+    this.anim = 0;
+    this.health = BowserObject.HEALTH;
+    this.bonkTimer = 0;
+    this.dim = vec2.make(2, 2);
+    this.fallSpeed = this.moveSpeed = 0;
+    this.grounded = false;
+    this.loc = [this.pos.x, this.pos.x - BowserObject.MOVE_AREA];
+    this.groundTimer = this.attackAnimTimer = this.attackTimer = this.hammerAttackTimer = 0;
+    this.lastHammerTime = 0;
+    this.hammersThrown = 0;
+    this.jumpTimer = -1;
+    this.reverse = false;
+    this.dir = true;
+}
+BowserObject.ASYNC = true;
+BowserObject.ID = 0x19;
+BowserObject.NAME = "BOWSER";
+BowserObject.VARIANT_OFFSET = 0x50;
+BowserObject.ANIMATION_RATE = 0x5;
+BowserObject.HEALTH = 0x5;
+BowserObject.BONK_TIME = 0x5a;
+BowserObject.BONK_IMP = vec2.make(0.25, 0.4);
+BowserObject.BONK_DECEL = 0.925;
+BowserObject.BONK_FALL_SPEED = 0.5;
+BowserObject.MOVE_SPEED_MAX = 0.095;
+BowserObject.JUMP_DELAY = 0x2d;
+BowserObject.MOVE_AREA = 0x5;
+BowserObject.JUMP_LENGTH = 0x6;
+BowserObject.JUMP_DECEL = 0.009;
+BowserObject.ATTACK_DELAY = 75;
+BowserObject.ATTACK_ANIM_LENGTH = 0xf;
+BowserObject.HAMMER_ATTACK_DELAY = 80;
+BowserObject.HAMMER_HOLD_TIME = 1;
+BowserObject.HAMMER_VOLLEY_SIZE = 8;
+BowserObject.HAMMER_VOLLEY_DELAY = 5;
+BowserObject.PROJ_OFFSET = vec2.make(-0.25, 0.25);
+BowserObject.HAMMER_PROJ_OFFSET = vec2.make(0.5, 2);
+BowserObject.FALL_SPEED_MAX = 0.3;
+BowserObject.FALL_SPEED_ACCEL = 0.085;
+BowserObject.SPRITE = {};
+BowserObject.SPRITE_LIST = [{
+    'NAME': "RUN0",
+    'ID': 0x0,
+    'INDEX': [
+        [0xc4, 0xc5],
+        [0xb4, 0xb5]
+    ]
+}, {
+    'NAME': "RUN1",
+    'ID': 0x1,
+    'INDEX': [
+        [0xc6, 0xc7],
+        [0xb6, 0xb7]
+    ]
+}, {
+    'NAME': "ATTACK0",
+    'ID': 0x2,
+    'INDEX': [
+        [0xc0, 0xc1],
+        [0xb0, 0xb1]
+    ]
+}, {
+    'NAME': "ATTACK1",
+    'ID': 0x3,
+    'INDEX': [
+        [0xc2, 0xc3],
+        [0xb2, 0xb3]
+    ]
+}];
+for (var i = 0x0; i < BowserObject.SPRITE_LIST.length; i++) BowserObject.SPRITE[BowserObject.SPRITE_LIST[i].NAME] = BowserObject.SPRITE_LIST[i], BowserObject.SPRITE[BowserObject.SPRITE_LIST[i].ID] = BowserObject.SPRITE_LIST[i];
+BowserObject.STATE = {};
+BowserObject.STATE_LIST = [{
+    'NAME': "RUN",
+    'ID': 0x0,
+    'SPRITE': [BowserObject.SPRITE.RUN0, BowserObject.SPRITE.RUN1]
+}, {
+    'NAME': "ATTACK",
+    'ID': 0x1,
+    'SPRITE': [BowserObject.SPRITE.ATTACK0, BowserObject.SPRITE.ATTACK1]
+}, {
+    'NAME': "BONK",
+    'ID': 0x51,
+    'SPRITE': []
+}];
+for (var i = 0x0; i < BowserObject.STATE_LIST.length; i++) BowserObject.STATE[BowserObject.STATE_LIST[i].NAME] = BowserObject.STATE_LIST[i], BowserObject.STATE[BowserObject.STATE_LIST[i].ID] = BowserObject.STATE_LIST[i];
+BowserObject.prototype.update = function (_0x45393d) { };
+BowserObject.prototype.step = function () {
+    if (this.state === BowserObject.STATE.BONK) {
+        if (this.bonkTimer++ > BowserObject.BONK_TIME || 0x0 > this.pos.y + this.dim.y) {
+            this.destroy();
+        } else {
+            this.pos = vec2.add(this.pos, vec2.make(this.moveSpeed, this.fallSpeed));
+            this.moveSpeed *= BowserObject.BONK_DECEL;
+            this.fallSpeed = Math.max(this.fallSpeed - BowserObject.FALL_SPEED_ACCEL, -BowserObject.BONK_FALL_SPEED);
+        }
+    } else {
+        this.anim++;
+        this.sprite = this.state.SPRITE[parseInt(this.anim / BowserObject.ANIMATION_RATE) % this.state.SPRITE.length];
+        this.control();
+        this.physics();
+        this.sound();
+        if (this.fire && this.attackTimer++ > BowserObject.ATTACK_DELAY) this.attack();
+        if (this.hammer && this.hammerAttackTimer++ > BowserObject.HAMMER_ATTACK_DELAY) this.hammerAttack();
+        if (0x0 < this.attackAnimTimer) {
+            this.setState(BowserObject.STATE.ATTACK);
+            this.attackAnimTimer--;
+        } else {
+            this.setState(BowserObject.STATE.RUN);
+            if (0x0 > this.pos.y) this.destroy();
+        }
+    }
+};
+BowserObject.prototype.control = function () {
+    this.grounded ? (BowserObject.JUMP_DELAY < this.groundTimer++ && (this.groundTimer = this.jumpTimer = 0x0), this.pos.x > this.loc[0x0] ? this.reverse = true : this.pos.x < this.loc[0x1] && (this.reverse = false)) : this.jumpTimer > BowserObject.JUMP_LENGTH && (this.jumpTimer = -0x1);
+    this.moveSpeed = (0.75 * this.moveSpeed + 0.25 * (this.reverse ? -BowserObject.MOVE_SPEED_MAX : BowserObject.MOVE_SPEED_MAX));
+};
+BowserObject.prototype.physics = function () {
+    -0x1 !== this.jumpTimer ? (this.fallSpeed = BowserObject.FALL_SPEED_MAX - this.jumpTimer * BowserObject.JUMP_DECEL, this.jumpTimer++, this.grounded = false) : (this.grounded && (this.fallSpeed = 0x0), this.fallSpeed = Math.max(this.fallSpeed - BowserObject.FALL_SPEED_ACCEL, -BowserObject.FALL_SPEED_MAX));
+    var _0x85d755 = vec2.add(this.pos, vec2.make(this.moveSpeed, 0x0)),
+        _0x471885 = vec2.add(this.pos, vec2.make(this.moveSpeed, this.fallSpeed)),
+        _0x3ec375 = vec2.make(0x0 <= this.moveSpeed ? this.pos.x : this.pos.x + this.moveSpeed, 0x0 >= this.fallSpeed ? this.pos.y : this.pos.y + this.fallSpeed),
+        _0x486f5e = vec2.make(this.dim.y + Math.abs(this.moveSpeed), this.dim.y + Math.abs(this.fallSpeed)),
+        _0x3ec375 = this.game.world.getZone(this.level, this.zone).getTiles(_0x3ec375, _0x486f5e),
+        _0x486f5e = vec2.make(0x1, 0x1);
+    this.grounded = false;
+    for (var _0x2d6663 = 0x0; _0x2d6663 < _0x3ec375.length; _0x2d6663++) {
+        var _0x50845a = _0x3ec375[_0x2d6663];
+        _0x50845a.definition.COLLIDE && squar.intersection(_0x50845a.pos, _0x486f5e, _0x85d755, this.dim) && (this.pos.x + this.dim.x <= _0x50845a.pos.x && _0x85d755.x + this.dim.x > _0x50845a.pos.x ? (_0x85d755.x = _0x50845a.pos.x - this.dim.x, _0x471885.x = _0x85d755.x, this.moveSpeed = 0x0) : this.pos.x >= _0x50845a.pos.x + _0x486f5e.x && _0x85d755.x < _0x50845a.pos.x + _0x486f5e.x && (_0x85d755.x = _0x50845a.pos.x + _0x486f5e.x, _0x471885.x = _0x85d755.x, this.moveSpeed = 0x0));
+    }
+    for (_0x2d6663 = 0x0; _0x2d6663 < _0x3ec375.length; _0x2d6663++) _0x50845a = _0x3ec375[_0x2d6663], _0x50845a.definition.COLLIDE && squar.intersection(_0x50845a.pos, _0x486f5e, _0x471885, this.dim) && (this.pos.y >= _0x50845a.pos.y + _0x486f5e.y && _0x471885.y < _0x50845a.pos.y + _0x486f5e.y ? (_0x471885.y = _0x50845a.pos.y + _0x486f5e.y, this.fallSpeed = 0x0, this.grounded = true) : this.pos.y + this.dim.y <= _0x50845a.pos.y && _0x471885.y + this.dim.y > _0x50845a.pos.y && (_0x471885.y = _0x50845a.pos.y - this.dim.y, this.jumpTimer = -0x1, this.fallSpeed = 0x0));
+    this.pos = vec2.make(_0x85d755.x, _0x471885.y);
+};
+BowserObject.prototype.sound = GameObject.prototype.sound;
+BowserObject.prototype.attack = function () {
+    this.attackAnimTimer = BowserObject.ATTACK_ANIM_LENGTH;
+    this.attackTimer = 0x0;
+    this.game.createObject(FireBreathObject.ID, this.level, this.zone, vec2.add(this.pos, BowserObject.PROJ_OFFSET), [undefined, this.fireDirection]);
+    this.play("breath.mp3", 1.5, 0.04);
+};
+BowserObject.prototype.hammerAttack = function () {
+    var hammerTime = this.hammerAttackTimer - this.lastHammerTime;
+    if (this.hammersThrown == 0 || hammerTime >= BowserObject.HAMMER_VOLLEY_DELAY) {
+        this.lastHammerTime = this.hammersThrown == 0 ? BowserObject.HAMMER_ATTACK_DELAY : this.lastHammerTime + BowserObject.HAMMER_VOLLEY_DELAY;
+        this.game.createObject(HammerObject.ID, this.level, this.zone, vec2.add(this.pos, BowserObject.HAMMER_PROJ_OFFSET), [this, BowserObject.HAMMER_HOLD_TIME]);
+        this.hammersThrown += 1;
+        if (this.hammersThrown >= BowserObject.HAMMER_VOLLEY_SIZE) {
+            this.hammerAttackTimer = 0x0;
+            this.lastHammerTime = 0;
+            this.hammersThrown = 0;
+        }
+    }
+};
+BowserObject.prototype.playerCollide = function (player) {
+    this.dead || this.garbage || player.damage(this);
+};
+BowserObject.prototype.playerStomp = BowserObject.prototype.playerCollide;
+BowserObject.prototype.playerBump = BowserObject.prototype.playerCollide;
+BowserObject.prototype.damage = function (player) {
+    this.dead || 0x0 >= --this.health && this.bonk();
+};
+BowserObject.prototype.bonk = function () {
+    this.dead || (this.setState(BowserObject.STATE.BONK), this.moveSpeed = BowserObject.BONK_IMP.x, this.fallSpeed = BowserObject.BONK_IMP.y, this.dead = true, this.play("kick.mp3", 0x1, 0.04));
+};
+BowserObject.prototype.kill = function () { };
+BowserObject.prototype.isTangible = GameObject.prototype.isTangible;
+BowserObject.prototype.destroy = GameObject.prototype.destroy;
+BowserObject.prototype.setState = function (state) {
+    state !== this.state && (this.state = state, 0x0 < state.SPRITE.length && (this.sprite = state.SPRITE[0x0]), this.anim = 0x0);
+};
+BowserObject.prototype.draw = function (spriteList) {
+    var mode = this.state === BowserObject.STATE.BONK ? 0x3 : 0x0;
+    if (this.sprite.INDEX instanceof Array) {
+        for (var s = this.sprite.INDEX, i = 0; i < s.length; i++)
+            for (var j = 0; j < s[i].length; j++) {
+                var index = s[mode ? s.length - 1 - i : i][j];
+                switch (this.variant) {
+                    case 1:
+                        index += BowserObject.VARIANT_OFFSET;
+                        break;
+                }
+                spriteList.push({
+                    'pos': vec2.add(this.pos, vec2.make(j, i)),
+                    'reverse': !this.dir,
+                    'index': index,
+                    'mode': mode
+                });
+            }
+    } else {
+        index = this.sprite.INDEX;
+        switch (this.variant) {
+            case 1:
+                index += BowserObject.VARIANT_OFFSET;
+                break;
+        }
+        spriteList.push({
+            'pos': this.pos,
+            'reverse': !this.dir,
+            'index': index,
+            'mode': mode
+        });
+    }
+};
+BowserObject.prototype.play = GameObject.prototype.play;
+GameObject.REGISTER_OBJECT(BowserObject);
+"use strict";
+
+function MovingPlatformObject(game, level, zone, pos, oid, length, offX, offY, speed, loop, delay, direction) {
+    GameObject.call(this, game, level, zone, pos);
+    this.oid = oid;
+    this.setState(MovingPlatformObject.STATE.IDLE);
+    this.loc = 0x0 === parseInt(direction) ? [pos, vec2.add(pos, vec2.make(parseFloat(offX), parseFloat(offY)))] : [vec2.add(pos, vec2.make(parseFloat(offX), parseFloat(offY))), pos];
+    this.anim = 0x0;
+    this.dim = vec2.make(parseInt(length), 0.5);
+    this.speed = parseFloat(speed);
+    this.riders = [];
+    this.dir = false;
+    this.loop = 0x0 === parseInt(loop) ? false : true;
+    this.delay = parseInt(delay);
+}
+MovingPlatformObject.ASYNC = true;
+MovingPlatformObject.ID = 0x91;
+MovingPlatformObject.NAME = "PLATFORM";
+MovingPlatformObject.ANIMATION_RATE = 0x3;
+MovingPlatformObject.SPRITE = {};
+MovingPlatformObject.SPRITE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'INDEX': 0xa0
+}, {
+    'NAME': "L_CORNER",
+    'ID': 0x1,
+    'INDEX': 174
+}, {
+    'NAME': "R_CORNER",
+    'ID': 0x2,
+    'INDEX': 175
+}];
+for (var i = 0x0; i < MovingPlatformObject.SPRITE_LIST.length; i++) MovingPlatformObject.SPRITE[MovingPlatformObject.SPRITE_LIST[i].NAME] = MovingPlatformObject.SPRITE_LIST[i], MovingPlatformObject.SPRITE[MovingPlatformObject.SPRITE_LIST[i].ID] = MovingPlatformObject.SPRITE_LIST[i];
+MovingPlatformObject.STATE = {};
+MovingPlatformObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [MovingPlatformObject.SPRITE.IDLE]
+}];
+for (var i = 0x0; i < MovingPlatformObject.STATE_LIST.length; i++) MovingPlatformObject.STATE[MovingPlatformObject.STATE_LIST[i].NAME] = MovingPlatformObject.STATE_LIST[i], MovingPlatformObject.STATE[MovingPlatformObject.STATE_LIST[i].ID] = MovingPlatformObject.STATE_LIST[i];
+MovingPlatformObject.prototype.update = function (packet) { };
+MovingPlatformObject.prototype.step = function () {
+    0x0 < this.delay-- || (this.anim++, this.sprite = this.state.SPRITE[parseInt(this.anim / MovingPlatformObject.ANIMATION_RATE) % this.state.SPRITE.length], this.physics());
+};
+MovingPlatformObject.prototype.physics = function() {
+    var dir = vec2.normalize(vec2.subtract(this.loc[this.dir?0:1], this.pos));
+    var dist = vec2.distance(this.pos, this.loc[this.dir?0:1]);
+    
+    if(dist<this.speed) {
+      if(this.loop) {
+        this.dir = !this.dir;
+      }
+      else {
+        this.pos = this.loc[0];
+        this.riders = [];
+        return;
+      }
+    }
+
+    var vel = vec2.scale(dir, Math.min(this.speed, dist));
+    
+    this.pos = vec2.add(this.pos, vel);
+    
+    for(var i=0;i<this.riders.length;i++) {
+      var rdr = this.riders[0];
+      if(!this.rotate) { rdr.pos = vec2.add(rdr.pos, vel); }
+    }
+    this.riders = [];
+};
+MovingPlatformObject.prototype.riding = function (rider) {
+    this.riders.push(rider);
+};
+MovingPlatformObject.prototype.kill = function () { };
+MovingPlatformObject.prototype.destroy = GameObject.prototype.destroy;
+MovingPlatformObject.prototype.isTangible = GameObject.prototype.isTangible;
+MovingPlatformObject.prototype.setState = function (state) {
+    state !== this.state && (this.state = state, this.sprite = state.SPRITE[0x0], this.anim = 0x0);
+};
+MovingPlatformObject.prototype.draw = function (spriteList) {
+    if (!(0x0 < this.delay)) {
+        for (var i = 0x0; i < this.dim.x; i++) {
+            var index = this.sprite.INDEX;
+
+            if(this.dim.x === 2) {
+                index = (i === 0) ? MovingPlatformObject.SPRITE["L_CORNER"].INDEX : MovingPlatformObject.SPRITE["R_CORNER"].INDEX;
+            }
+
+            if(this.dim.x > 2) {
+                if(i === 0) {
+                    index = MovingPlatformObject.SPRITE["L_CORNER"].INDEX;
+                } else if(i === this.dim.x-1) {
+                    index = MovingPlatformObject.SPRITE["R_CORNER"].INDEX;
+                }
+            }
+
+            spriteList.push({
+                'pos': vec2.add(this.pos, vec2.make(i, -0.5)),
+                'reverse': this.reverse,
+                'index': index,
+                'mode': 0x0
+            });
+        }
+    }
+};
+GameObject.REGISTER_OBJECT(MovingPlatformObject);
+"use strict";
+
+function BusPlatformObject(game, level, zone, pos, oid, length, offX, offY, speed) {
+    GameObject.call(this, game, level, zone, pos);
+    this.oid = oid;
+    this.setState(BusPlatformObject.STATE.IDLE);
+    this.loc = [pos, vec2.add(pos, vec2.make(parseInt(offX), parseInt(offY)))];
+    this.anim = 0x0;
+    this.dim = vec2.make(parseInt(length), 0.5);
+    this.speed = parseFloat(speed);
+    this.riders = [];
+    this.dir = this.go = false;
+}
+BusPlatformObject.ASYNC = false;
+BusPlatformObject.ID = 0x92;
+BusPlatformObject.NAME = "BUS PLATFORM";
+BusPlatformObject.ANIMATION_RATE = 0x3;
+BusPlatformObject.SPRITE = {};
+BusPlatformObject.SPRITE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'INDEX': 0xa0
+}];
+for (var i = 0x0; i < BusPlatformObject.SPRITE_LIST.length; i++) BusPlatformObject.SPRITE[BusPlatformObject.SPRITE_LIST[i].NAME] = BusPlatformObject.SPRITE_LIST[i], BusPlatformObject.SPRITE[BusPlatformObject.SPRITE_LIST[i].ID] = BusPlatformObject.SPRITE_LIST[i];
+BusPlatformObject.STATE = {};
+BusPlatformObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [BusPlatformObject.SPRITE.IDLE]
+}];
+for (var i = 0x0; i < BusPlatformObject.STATE_LIST.length; i++) BusPlatformObject.STATE[BusPlatformObject.STATE_LIST[i].NAME] = BusPlatformObject.STATE_LIST[i], BusPlatformObject.STATE[BusPlatformObject.STATE_LIST[i].ID] = BusPlatformObject.STATE_LIST[i];
+BusPlatformObject.prototype.update = function (packet) {
+    switch (packet) {
+        case 0xa1:
+            this.start();
+    }
+};
+BusPlatformObject.prototype.step = function () {
+    this.anim++;
+    this.sprite = this.state.SPRITE[parseInt(this.anim / BusPlatformObject.ANIMATION_RATE) % this.state.SPRITE.length];
+    this.physics();
+};
+BusPlatformObject.prototype.physics = function () {
+    if (this.go) {
+        var _0x48a68f = vec2.normalize(vec2.subtract(this.loc[this.dir ? 0x0 : 0x1], this.pos)),
+            _0x2b99c6 = vec2.distance(this.pos, this.loc[this.dir ? 0x0 : 0x1]),
+            _0x48a68f = vec2.scale(_0x48a68f, Math.min(this.speed, _0x2b99c6));
+        this.pos = vec2.add(this.pos, _0x48a68f);
+        for (_0x2b99c6 = 0x0; _0x2b99c6 < this.riders.length; _0x2b99c6++) {
+            var _0x565fcd = this.riders[0x0];
+            _0x565fcd.pos = vec2.add(_0x565fcd.pos, _0x48a68f);
+        }
+    }
+    this.riders = [];
+};
+BusPlatformObject.prototype.start = function () {
+    this.go = true;
+};
+BusPlatformObject.prototype.riding = function (player) {
+    player.pid !== this.game.pid || this.go || this.game.out.push(NET020.encode(this.level, this.zone, this.oid, 0xa1));
+    this.riders.push(player);
+};
+BusPlatformObject.prototype.kill = function () { };
+BusPlatformObject.prototype.isTangible = GameObject.prototype.isTangible;
+BusPlatformObject.prototype.destroy = GameObject.prototype.destroy;
+BusPlatformObject.prototype.setState = function (state) {
+    state !== this.state && (this.state = state, this.sprite = state.SPRITE[0x0], this.anim = 0x0);
+};
+BusPlatformObject.prototype.draw = MovingPlatformObject.prototype.draw;
+GameObject.REGISTER_OBJECT(BusPlatformObject);
+"use strict";
+
+function SpringObject(game, level, zone, pos, oid, springType) {
+    GameObject.call(this, game, level, zone, pos);
+    this.oid = oid;
+    this.setState(SpringObject.STATE.EXTEND);
+    this.anim = 0;
+    this.pos = vec2.add(this.pos, SpringObject.SOFFSET);
+    this.dim = vec2.make(0.8, 2);
+    this.springType = isNaN(parseInt(springType)) ? 0 : parseInt(springType); // 0=red/normal, 1=green/super
+}
+SpringObject.ASYNC = true;
+SpringObject.ID = 0x95;
+SpringObject.NAME = "SPRING";
+SpringObject.ANIMATION_RATE = 0x3;
+SpringObject.SOFFSET = vec2.make(0.1, 0x0);
+SpringObject.THRESHOLD = [0x1, 0.5];
+SpringObject.POWER = 0.45;
+SpringObject.VARIANT_OFFSET = 0xb0;
+SpringObject.SPRITE = {};
+SpringObject.SPRITE_LIST = [{
+    'NAME': "STAGE0",
+    'ID': 0x0,
+    'INDEX': [
+        [0xa1],
+        [0x91]
+    ]
+}, {
+    'NAME': "STAGE1",
+    'ID': 0x1,
+    'INDEX': 0xa2
+}, {
+    'NAME': "STAGE2",
+    'ID': 0x2,
+    'INDEX': 0xa3
+}];
+for (var i = 0x0; i < SpringObject.SPRITE_LIST.length; i++) {
+    SpringObject.SPRITE[SpringObject.SPRITE_LIST[i].NAME] = SpringObject.SPRITE_LIST[i];
+    SpringObject.SPRITE[SpringObject.SPRITE_LIST[i].ID] = SpringObject.SPRITE_LIST[i];
+}
+SpringObject.STATE = {};
+SpringObject.STATE_LIST = [{
+    'NAME': "EXTEND",
+    'ID': 0x0,
+    'SPRITE': [SpringObject.SPRITE.STAGE0]
+}, {
+    'NAME': "HALF",
+    'ID': 0x1,
+    'SPRITE': [SpringObject.SPRITE.STAGE1]
+}, {
+    'NAME': "COMPRESS",
+    'ID': 0x2,
+    'SPRITE': [SpringObject.SPRITE.STAGE2]
+}];
+for (var i = 0; i < SpringObject.STATE_LIST.length; i++) {
+    SpringObject.STATE[SpringObject.STATE_LIST[i].NAME] = SpringObject.STATE_LIST[i];
+    SpringObject.STATE[SpringObject.STATE_LIST[i].ID] = SpringObject.STATE_LIST[i];
+}
+SpringObject.prototype.update = function (_0x348375) { };
+SpringObject.prototype.step = function () {
+    this.anim++;
+    this.sprite = this.state.SPRITE[parseInt(this.anim / SpringObject.ANIMATION_RATE) % this.state.SPRITE.length];
+    this.interaction();
+};
+SpringObject.prototype.interaction = function () {
+    var player = this.game.getPlayer();
+    if (player && player.level === this.level && player.zone === this.zone && player.isTangible() && squar.intersection(this.pos, this.dim, player.pos, player.dim)) {
+        var compression = Math.pow(1 - 0.5 * Math.min(Math.max(0, player.pos.y - this.pos.y), 2), 2);
+        if (player.fallSpeed >= 0.75 * PlayerObject.FALL_SPEED_MAX && player.btnA) {
+            player.jumping = 0;
+            player.springJump = this.springType ? 2 : 1;
+            if (!player.isSpring) {
+                this.game.play("spring.mp3", 1, 0);
+                player.isSpring = true;
+            }
+        }
+        if (!player.tfmTimer)
+            player.fallSpeed += Math.min(0x2 * PlayerObject.FALL_SPEED_MAX, compression * SpringObject.POWER);
+        player.grounded = false;
+    }
+    var compression = 2;
+    for (i = 0; i < this.game.objects.length; i++) {
+        var obj = this.game.objects[i];
+        if (obj instanceof PlayerObject && obj.level === this.level && obj.zone === this.zone && obj.isTangible() && squar.intersection(this.pos, this.dim, obj.pos, obj.dim)) {
+            var newCompression = Math.min(Math.max(0, obj.pos.y - this.pos.y), 2);
+            if (newCompression < compression) compression = newCompression;
+        }
+    }
+    if (compression < SpringObject.THRESHOLD[1])
+        this.setState(SpringObject.STATE.COMPRESS)
+    else if (compression < SpringObject.THRESHOLD[0])
+        this.setState(SpringObject.STATE.HALF)
+    else this.setState(SpringObject.STATE.EXTEND);
+};
+SpringObject.prototype.kill = function () { };
+SpringObject.prototype.destroy = GameObject.prototype.destroy;
+SpringObject.prototype.isTangible = GameObject.prototype.isTangible;
+SpringObject.prototype.setState = function (state) {
+    state !== this.state && (this.state = state, this.sprite = state.SPRITE[0], this.anim = 0);
+};
+SpringObject.prototype.draw = function (spriteList) {
+    if (this.sprite.INDEX instanceof Array) {
+        for (var s = this.sprite.INDEX, i = 0; i < s.length; i++) {
+            for (var j = 0; j < s[i].length; j++) {
+                var index = s[i][j];
+                switch (this.springType) {
+                    case 1:
+                        index += SpringObject.VARIANT_OFFSET;
+                        break;
+                }
+                spriteList.push({
+                    'pos': vec2.subtract(vec2.add(this.pos, vec2.make(j, i)), SpringObject.SOFFSET),
+                    'reverse': false,
+                    'index': index,
+                    'mode': 0x0
+                });
+            }
+        }
+    } else {
+        var index = this.sprite.INDEX;
+        switch (this.springType) {
+            case 1:
+                index += SpringObject.VARIANT_OFFSET;
+                break;
+        }
+        spriteList.push({
+            'pos': vec2.subtract(this.pos, SpringObject.SOFFSET),
+            'reverse': false,
+            'index': index,
+            'mode': 0x0
+        });
+    }
+};
+GameObject.REGISTER_OBJECT(SpringObject);
+"use strict";
+
+function FlagpoleObject(game, level, zone, pos, oid, noOffset, variant) {
+    GameObject.call(this, game, level, zone, pos);
+    this.oid = oid;
+    this.setState(FlagpoleObject.STATE.IDLE);
+    this.anim = 0x0;
+    this.offset = parseInt(noOffset) === 1 ? vec2.make(0, 0) : FlagpoleObject.OFFSET;
+    this.variant = isNaN(parseInt(variant)) ? 0 : parseInt(variant);
+}
+FlagpoleObject.ASYNC = true;
+FlagpoleObject.ID = 0xb1;
+FlagpoleObject.NAME = "FLAG";
+FlagpoleObject.ANIMATION_RATE = 0x3;
+FlagpoleObject.OFFSET = vec2.make(-0.5, 0);
+FlagpoleObject.VARIANT_OFFSET = 0xb0;
+FlagpoleObject.SPRITE = {};
+FlagpoleObject.SPRITE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'INDEX': 0x90
+}];
+for (var i = 0x0; i < FlagpoleObject.SPRITE_LIST.length; i++) FlagpoleObject.SPRITE[FlagpoleObject.SPRITE_LIST[i].NAME] = FlagpoleObject.SPRITE_LIST[i], FlagpoleObject.SPRITE[FlagpoleObject.SPRITE_LIST[i].ID] = FlagpoleObject.SPRITE_LIST[i];
+FlagpoleObject.STATE = {};
+FlagpoleObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [FlagpoleObject.SPRITE.IDLE]
+}];
+for (var i = 0x0; i < FlagpoleObject.STATE_LIST.length; i++) FlagpoleObject.STATE[FlagpoleObject.STATE_LIST[i].NAME] = FlagpoleObject.STATE_LIST[i], FlagpoleObject.STATE[FlagpoleObject.STATE_LIST[i].ID] = FlagpoleObject.STATE_LIST[i];
+FlagpoleObject.prototype.update = function (_0x261833) { };
+FlagpoleObject.prototype.step = function () {
+    this.anim++;
+    this.sprite = this.state.SPRITE[parseInt(this.anim / FlagpoleObject.ANIMATION_RATE) % this.state.SPRITE.length];
+};
+FlagpoleObject.prototype.kill = function () { };
+FlagpoleObject.prototype.isTangible = GameObject.prototype.isTangible;
+FlagpoleObject.prototype.destroy = GameObject.prototype.destroy;
+FlagpoleObject.prototype.setState = function (state) {
+    state !== this.state && (this.state = state, this.sprite = state.SPRITE[0x0], this.anim = 0x0);
+};
+FlagpoleObject.prototype.draw = function (spriteList) {
+    var index = this.sprite.INDEX;
+    switch (this.variant) {
+        case 1:
+            index += FlagpoleObject.VARIANT_OFFSET;
+            break;
+    }
+    spriteList.push({
+        'pos': vec2.add(this.pos, this.offset),
+        'reverse': false,
+        'index': index,
+        'mode': 0x0
+    });
+};
+GameObject.REGISTER_OBJECT(FlagpoleObject);
+
+"use strict";
+
+function LavaBubbleObject(game, level, zone, pos, oid, delay, impulse) {
+    GameObject.call(this, game, level, zone, pos);
+    this.oid = oid;
+    this.setState(LavaBubbleObject.STATE.IDLE);
+    this.delay = isNaN(parseInt(delay)) ? LavaBubbleObject.DELAY_DEFAULT : parseInt(delay);
+    this.impulse = isNaN(parseFloat(impulse)) ? 0x1 : parseFloat(impulse);
+    this.anim = 0x0;
+    this.delayTimer = this.delay;
+    this.pos.x += LavaBubbleObject.SOFFSET.x;
+    this.loc = vec2.copy(this.pos);
+    this.fallSpeed = 0x0;
+    this.dim = vec2.make(0.7, 0.7);
+}
+LavaBubbleObject.ASYNC = true;
+LavaBubbleObject.ID = 0x22;
+LavaBubbleObject.NAME = "LAVA BUBBLE";
+LavaBubbleObject.ANIMATION_RATE = 0x3;
+LavaBubbleObject.DELAY_DEFAULT = 0x5a;
+LavaBubbleObject.IMPULSE = 1.35;
+LavaBubbleObject.DRAG = 0.95;
+LavaBubbleObject.FALL_SPEED_ACCEL = 0.055;
+LavaBubbleObject.SOFFSET = vec2.make(0.15, 0.15);
+LavaBubbleObject.SPRITE = {};
+LavaBubbleObject.SPRITE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'INDEX': 0xdb
+}];
+for (var i = 0x0; i < LavaBubbleObject.SPRITE_LIST.length; i++) LavaBubbleObject.SPRITE[LavaBubbleObject.SPRITE_LIST[i].NAME] = LavaBubbleObject.SPRITE_LIST[i], LavaBubbleObject.SPRITE[LavaBubbleObject.SPRITE_LIST[i].ID] = LavaBubbleObject.SPRITE_LIST[i];
+LavaBubbleObject.STATE = {};
+LavaBubbleObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [LavaBubbleObject.SPRITE.IDLE]
+}];
+for (var i = 0x0; i < LavaBubbleObject.STATE_LIST.length; i++) LavaBubbleObject.STATE[LavaBubbleObject.STATE_LIST[i].NAME] = LavaBubbleObject.STATE_LIST[i], LavaBubbleObject.STATE[LavaBubbleObject.STATE_LIST[i].ID] = LavaBubbleObject.STATE_LIST[i];
+LavaBubbleObject.prototype.update = function (packet) { };
+LavaBubbleObject.prototype.step = function () {
+    this.anim++;
+    this.sprite = this.state.SPRITE[parseInt(this.anim / LavaBubbleObject.ANIMATION_RATE) % this.state.SPRITE.length];
+    0x0 < this.delayTimer ? this.delayTimer-- : this.blast();
+    this.physics();
+};
+LavaBubbleObject.prototype.physics = function () {
+    if (this.pos.y > this.loc.y || 0x0 < this.fallSpeed) this.fallSpeed = (this.fallSpeed - LavaBubbleObject.FALL_SPEED_ACCEL) * LavaBubbleObject.DRAG, this.pos.y += this.fallSpeed;
+};
+LavaBubbleObject.prototype.blast = function () {
+    this.pos = vec2.copy(this.loc);
+    this.fallSpeed = LavaBubbleObject.IMPULSE * this.impulse;
+    this.delayTimer = this.delay;
+};
+LavaBubbleObject.prototype.playerCollide = function (obj) {
+    this.dead || this.garbage || obj.damage(this);
+};
+LavaBubbleObject.prototype.playerStomp = function (obj) {
+    this.playerCollide(obj);
+};
+LavaBubbleObject.prototype.playerBump = function (obj) {
+    this.playerCollide(obj);
+};
+LavaBubbleObject.prototype.kill = function () { };
+LavaBubbleObject.prototype.isTangible = GameObject.prototype.isTangible;
+LavaBubbleObject.prototype.destroy = GameObject.prototype.destroy;
+LavaBubbleObject.prototype.setState = function (state) {
+    state !== this.state && (this.state = state, this.sprite = state.SPRITE[0x0], this.anim = 0x0);
+};
+LavaBubbleObject.prototype.draw = function (spriteList) {
+    var mode = 0x0 <= this.fallSpeed ? 0x0 : 0x3;
+    spriteList.push({
+        'pos': vec2.subtract(this.pos, LavaBubbleObject.SOFFSET),
+        'reverse': false,
+        'index': this.sprite.INDEX,
+        'mode': mode
+    });
+};
+GameObject.REGISTER_OBJECT(LavaBubbleObject);
+"use strict";
+
+function BillBlasterObject(game, level, zone, pos, oid, delay, direction, speed, range, life, variant) {
+    GameObject.call(this, game, level, zone, pos);
+    this.oid = oid;
+    this.setState(BillBlasterObject.STATE.IDLE);
+    this.fireTimer = 0x0;
+    this.delay = isNaN(parseInt(delay)) ? BillBlasterObject.FIRE_DELAY_DEFAULT : parseInt(delay);
+    this.speed = parseFloat(speed) || BulletBillObject.SPEED;
+    this.shootDirection = isNaN(parseInt(direction)) ? 0 : parseInt(direction);
+    this.range = isNaN(range) ? -1 : parseInt(range);
+    this.life = isNaN(life) ? -1 : parseInt(life);
+    this.speed = parseFloat(speed) || BulletBillObject.SPEED;
+    this.variant = isNaN(parseInt(variant)) ? 0 : parseInt(variant);
+}
+BillBlasterObject.ASYNC = true;
+BillBlasterObject.ID = 0x23;
+BillBlasterObject.NAME = "BILL BLASTER";
+BillBlasterObject.ANIMATION_RATE = 0x3;
+BillBlasterObject.FIRE_DELAY_DEFAULT = 0x96;
+BillBlasterObject.SPRITE = {};
+BillBlasterObject.SPRITE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'INDEX': 0xff
+}];
+for (var i = 0; i < BillBlasterObject.SPRITE_LIST.length; i++) BillBlasterObject.SPRITE[BillBlasterObject.SPRITE_LIST[i].NAME] = BillBlasterObject.SPRITE_LIST[i], BillBlasterObject.SPRITE[BillBlasterObject.SPRITE_LIST[i].ID] = BillBlasterObject.SPRITE_LIST[i];
+BillBlasterObject.STATE = {};
+BillBlasterObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [BillBlasterObject.SPRITE.IDLE]
+}];
+for (var i = 0; i < BillBlasterObject.STATE_LIST.length; i++) BillBlasterObject.STATE[BillBlasterObject.STATE_LIST[i].NAME] = BillBlasterObject.STATE_LIST[i], BillBlasterObject.STATE[BillBlasterObject.STATE_LIST[i].ID] = BillBlasterObject.STATE_LIST[i];
+BillBlasterObject.prototype.update = function (packet) { };
+BillBlasterObject.prototype.step = function () {
+    ++this.fireTimer > this.delay && this.fire();
+    this.sound();
+};
+BillBlasterObject.prototype.sound = GameObject.prototype.sound;
+BillBlasterObject.prototype.fire = function () {
+    this.fireTimer = 0x0;
+
+    let closestDistance = -1;
+    for (var i = 0x0; i < this.game.objects.length; i++) {
+        var obj = this.game.objects[i];
+        if(obj instanceof PlayerObject && obj.level === this.level && obj.zone === this.zone && !obj.dead) {
+            var dist = vec2.distance(this.pos, obj.pos);
+            if(closestDistance === -1) { closestDistance = dist; this.target = obj; }
+            else {
+                if(dist < closestDistance) { closestDistance = dist; this.target = obj; }
+            }
+        }
+    }
+
+    if(closestDistance != -1 && this.range != -1) {
+        if(closestDistance > this.range) {
+            return;
+        }
+    }
+
+    this.game.createObject(BulletBillObject.ID, this.level, this.zone, vec2.copy(this.pos), [undefined, this.shootDirection, this.speed, this.life, this.variant]);
+    this.play("firework.mp3", 0x1, 0.04);
+};
+BillBlasterObject.prototype.kill = function () { };
+BillBlasterObject.prototype.isTangible = GameObject.prototype.isTangible;
+BillBlasterObject.prototype.destroy = GameObject.prototype.destroy;
+BillBlasterObject.prototype.setState = function (state) {
+    state !== this.state && (this.state = state, this.sprite = state.SPRITE[0x0], this.anim = 0x0);
+};
+BillBlasterObject.prototype.draw = function (spriteList) { };
+BillBlasterObject.prototype.play = GameObject.prototype.play;
+GameObject.REGISTER_OBJECT(BillBlasterObject);
+
+function BulletBillObject(game, level, zone, pos, oid, direction, speed, life, variant) {
+    GameObject.call(this, game, level, zone, vec2.add(pos, vec2.make(0.2, 0.2)));
+    this.oid = oid;
+    this.setState(BulletBillObject.STATE.IDLE);
+    this.bonkTimer = this.anim = 0;
+    this.dim = vec2.make(0.8, 0.8);
+    this.fallSpeed = this.moveSpeed = 0;
+    this.direction = isNaN(parseInt(direction)) ? 0 : parseInt(direction);
+    this.speed = parseFloat(speed) || BulletBillObject.SPEED;
+    this.life = isNaN(life) ? -1 : parseInt(life);
+    this.deadTimer = 0;
+    this.variant = isNaN(parseInt(variant)) ? 0 : parseInt(variant);
+}
+BulletBillObject.ASYNC = true;
+BulletBillObject.ID = 0x24;
+BulletBillObject.NAME = "BULLET BILL";
+BulletBillObject.ANIMATION_RATE = 0x3;
+BulletBillObject.SPEED = 0.215;
+BulletBillObject.BONK_TIME = 0x5a;
+BulletBillObject.BONK_IMP = vec2.make(0, 0.4);
+BulletBillObject.BONK_DECEL = 0.925;
+BulletBillObject.BONK_FALL_SPEED = 0.5;
+BulletBillObject.BONK_FALL_ACCEL = 0.085;
+BulletBillObject.DELAY_DEFAULT = 0x113;
+BulletBillObject.DEAD_ANIM_LENGTH = 3;
+BulletBillObject.IMPULSE = vec2.make(0.225, 0.335);
+BulletBillObject.DRAG = 0.996;
+BulletBillObject.FALL_SPEED_ACCEL = 0.0055;
+BulletBillObject.SOFFSET = vec2.make(0.15, 0.15);
+BulletBillObject.VARIANT_OFFSET = -0x11; // blue/underground
+BulletBillObject.VARIANT_2_OFFSET = -0x10; // gray/castle
+BulletBillObject.SPRITE = {};
+BulletBillObject.SPRITE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'INDEX': 0xcd
+}, {
+    'NAME': "EXPLODE0",
+    'ID': 0x1,
+    'INDEX': 0xd4
+}, {
+    'NAME': "EXPLODE1",
+    'ID': 0x1,
+    'INDEX': 0xd5
+}, {
+    'NAME': "EXPLODE2",
+    'ID': 0x1,
+    'INDEX': 0xd6
+}];
+for (var i = 0; i < BulletBillObject.SPRITE_LIST.length; i++) BulletBillObject.SPRITE[BulletBillObject.SPRITE_LIST[i].NAME] = BulletBillObject.SPRITE_LIST[i], BulletBillObject.SPRITE[BulletBillObject.SPRITE_LIST[i].ID] = BulletBillObject.SPRITE_LIST[i];
+BulletBillObject.STATE = {};
+BulletBillObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [BulletBillObject.SPRITE.IDLE]
+}, {
+    'NAME': "DEAD",
+    'ID': 0x1,
+    'SPRITE': [BulletBillObject.SPRITE.EXPLODE0, BulletBillObject.SPRITE.EXPLODE1, BulletBillObject.SPRITE.EXPLODE2]
+}, {
+    'NAME': "BONK",
+    'ID': 0x51,
+    'SPRITE': []
+}];
+for (var i = 0; i < BulletBillObject.STATE_LIST.length; i++) BulletBillObject.STATE[BulletBillObject.STATE_LIST[i].NAME] = BulletBillObject.STATE_LIST[i], BulletBillObject.STATE[BulletBillObject.STATE_LIST[i].ID] = BulletBillObject.STATE_LIST[i];
+BulletBillObject.prototype.update = function (_0xebda49) { };
+BulletBillObject.prototype.step = function () {
+    if(this.state === BulletBillObject.STATE.DEAD) {
+        if(this.deadTimer < BulletBillObject.DEAD_ANIM_LENGTH) { this.sprite = this.state.SPRITE[this.deadTimer++]; }
+        else { this.destroy(); }
+        return;
+    }
+    this.state === BulletBillObject.STATE.BONK ? this.bonkTimer++ > BulletBillObject.BONK_TIME || 0x0 > this.pos.y + this.dim.y ? this.destroy() : (this.pos = vec2.add(this.pos, vec2.make(this.moveSpeed, this.fallSpeed)), this.moveSpeed *= BulletBillObject.BONK_DECEL, this.fallSpeed = Math.max(this.fallSpeed - BulletBillObject.BONK_FALL_ACCEL, -BulletBillObject.BONK_FALL_SPEED)) : (this.anim++, this.sprite = this.state.SPRITE[parseInt(this.anim / BulletBillObject.ANIMATION_RATE) % this.state.SPRITE.length], this.physics(), this.sound());
+};
+BulletBillObject.prototype.physics = function () {
+    if(this.life > 0) {
+        if(--this.life === 0) {
+            this.explode();
+        }
+    }
+    0x0 < this.pos.x ? (this.direction === 0 ? (this.pos.x -= this.speed) : (this.pos.x += this.speed)) : this.destroy();
+};
+BulletBillObject.prototype.explode = function () {
+    this.dead = true;
+    this.setState(BulletBillObject.STATE.DEAD);
+};
+BulletBillObject.prototype.sound = GameObject.prototype.sound;
+BulletBillObject.prototype.disable = function () {
+    this.disabled = true;
+};
+BulletBillObject.prototype.enable = function () {
+    this.disabled = false;
+};
+BulletBillObject.prototype.damage = function (_0x582020) { };
+BulletBillObject.prototype.bonk = function () {
+    this.dead || (this.setState(BulletBillObject.STATE.BONK), this.moveSpeed = BulletBillObject.BONK_IMP.x, this.fallSpeed = BulletBillObject.BONK_IMP.y, this.dead = true, this.play("kick.mp3", 0x1, 0.04));
+};
+BulletBillObject.prototype.playerCollide = function (obj) {
+    this.dead || this.garbage || obj.damage(this);
+};
+BulletBillObject.prototype.playerStomp = function (obj) {
+    this.dead || this.garbage || (this.bonk(), obj.bounce(), this.play("stomp.mp3", 0x1, 0.04), this.game.out.push(NET020.encode(this.level, this.zone, this.oid, 0x1)));
+};
+BulletBillObject.prototype.playerBump = function (obj) {
+    this.playerCollide(obj);
+};
+BulletBillObject.prototype.kill = function () { };
+BulletBillObject.prototype.isTangible = GameObject.prototype.isTangible;
+BulletBillObject.prototype.destroy = GameObject.prototype.destroy;
+BulletBillObject.prototype.setState = function (state) {
+    state !== this.state && (this.state = state, 0x0 < state.SPRITE.length && (this.sprite = state.SPRITE[0x0]), this.anim = 0x0);
+};
+BulletBillObject.prototype.draw = function (spriteList) {
+    var mode = this.state === BulletBillObject.STATE.BONK ? 0x3 : 0x0;
+    var index = this.sprite.INDEX;
+    switch (this.variant) {
+        case 1:
+            index += BulletBillObject.VARIANT_OFFSET;
+            break;
+        case 2:
+            index += BulletBillObject.VARIANT_2_OFFSET;
+            break;
+    }
+    console.log(this.variant, index);
+    spriteList.push({
+        'pos': vec2.subtract(this.pos, BulletBillObject.SOFFSET),
+        'reverse': this.direction !== 0,
+        'index': index,
+        'mode': mode
+    });
+};
+BulletBillObject.prototype.play = GameObject.prototype.play;
+GameObject.REGISTER_OBJECT(BulletBillObject);
+"use strict";
+
+function SpawnerObject(game, level, zone, pos, oid, objectType, delay, direction) {
+    GameObject.call(this, game, level, zone, pos);
+    this.oid = oid;
+    this.objectType = parseInt(objectType);
+    //this.setState(BillBlasterObject.STATE.IDLE);
+    this.fireTimer = 0x0;
+    this.delay = isNaN(parseInt(delay)) ? SpawnerObject.FIRE_DELAY_DEFAULT : parseInt(delay);
+    this.shootDirection = isNaN(parseInt(direction)) ? 0 : parseInt(direction);
+    this.disable();
+}
+SpawnerObject.ID = 37;
+SpawnerObject.FIRE_DELAY_DEFAULT = 150;
+SpawnerObject.ENABLE_DIST = 26;
+SpawnerObject.prototype.update = function (mode) {
+    switch (mode) {
+        case 0xa0:
+            this.enable();
+            break;
+    }
+};
+SpawnerObject.prototype.disable = function () {
+    this.disabled = true;
+};
+SpawnerObject.prototype.enable = function () {
+    this.disabled = false;
+};
+SpawnerObject.prototype.proximity = function () {
+    var player = this.game.getPlayer();
+    player && !player.dead && player.level === this.level && player.zone === this.zone && !this.proxHit && vec2.distance(player.pos, this.pos) < GoombaObject.ENABLE_DIST && (this.game.out.push(NET020.encode(this.level, this.zone, this.oid, 0xa0)), this.proxHit = true);
+};
+SpawnerObject.prototype.step = function () {
+    if (this.disabled) return this.proximity();
+    if (++this.fireTimer > this.delay) this.fire();
+};
+SpawnerObject.prototype.fire = function () {
+    this.fireTimer = 0;
+    var obj = this.game.createObject(this.objectType, this.level, this.zone, vec2.copy(this.pos), [this.game.world.getZone(this.level, this.zone).maxOid += 1]);
+    obj.enable && obj.enable();
+    if (this.shootDirection) {
+        if (obj.dir) obj.dir = this.shootDirection;
+        if (obj.direction) obj.direction = this.shootDirection;
+    };
+    if (obj.enable) {
+        obj.enable();
+    }
+    this.disable();
+    this.proxHit = false;
+};
+SpawnerObject.prototype.isTangible = function () { return false; };
+GameObject.REGISTER_OBJECT(SpawnerObject);
+
+"use strict";
+
+function FireBreathObject(game, level, zone, pos, oid, direction) {
+    GameObject.call(this, game, level, zone, pos);
+    this.state = FireBreathObject.STATE.IDLE;
+    this.sprite = this.state.SPRITE[0x0];
+    this.anim = 0x0;
+    this.life = FireBreathObject.LIFE_MAX;
+    this.deadTimer = 0x0;
+    this.dim = vec2.make(0x1, 0.5);
+    this.direction = 0; //isNaN(parseInt(direction)) ? 0 : parseInt(direction);
+}
+FireBreathObject.ASYNC = true;
+FireBreathObject.ID = 0xa2;
+FireBreathObject.NAME = "FIRE BREATH PROJECTILE";
+FireBreathObject.ANIMATION_RATE = 0x2;
+FireBreathObject.SOFFSET = vec2.make(-0.5, -0.25);
+FireBreathObject.LIFE_MAX = 0xaf;
+FireBreathObject.DEAD_ANIM_LENGTH = 0x3;
+FireBreathObject.SPEED = 0.175;
+FireBreathObject.SPRITE = {};
+FireBreathObject.SPRITE_LIST = [{
+    'NAME': "IDLE0",
+    'ID': 0x0,
+    'INDEX': [
+        [0xd7, 0xd8]
+    ]
+}, {
+    'NAME': "IDLE1",
+    'ID': 0x1,
+    'INDEX': [
+        [0xd9, 0xda]
+    ]
+}, {
+    'NAME': "DEAD0",
+    'ID': 0x4,
+    'INDEX': 0xd4
+}, {
+    'NAME': "DEAD1",
+    'ID': 0x5,
+    'INDEX': 0xd5
+}, {
+    'NAME': "DEAD2",
+    'ID': 0x6,
+    'INDEX': 0xd6
+}];
+for (var i = 0x0; i < FireBreathObject.SPRITE_LIST.length; i++) FireBreathObject.SPRITE[FireBreathObject.SPRITE_LIST[i].NAME] = FireBreathObject.SPRITE_LIST[i], FireBreathObject.SPRITE[FireBreathObject.SPRITE_LIST[i].ID] = FireBreathObject.SPRITE_LIST[i];
+FireBreathObject.STATE = {};
+FireBreathObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [FireBreathObject.SPRITE.IDLE0, FireBreathObject.SPRITE.IDLE1]
+}, {
+    'NAME': "DEAD",
+    'ID': 0x50,
+    'SPRITE': [FireBreathObject.SPRITE.DEAD0, FireBreathObject.SPRITE.DEAD1, FireBreathObject.SPRITE.DEAD2]
+}];
+for (var i = 0x0; i < FireBreathObject.STATE_LIST.length; i++) FireBreathObject.STATE[FireBreathObject.STATE_LIST[i].NAME] = FireBreathObject.STATE_LIST[i], FireBreathObject.STATE[FireBreathObject.STATE_LIST[i].ID] = FireBreathObject.STATE_LIST[i];
+FireBreathObject.prototype.update = function (packet) { };
+FireBreathObject.prototype.step = function () {
+    this.state === FireBreathObject.STATE.DEAD ? this.deadTimer < FireBreathObject.DEAD_ANIM_LENGTH ? this.sprite = this.state.SPRITE[this.deadTimer++] : this.destroy() : (this.anim++, this.sprite = this.state.SPRITE[parseInt(this.anim / FireBreathObject.ANIMATION_RATE) % this.state.SPRITE.length], this.control(), this.physics(), this.interaction(), 0x1 > this.life-- && this.kill());
+};
+FireBreathObject.prototype.control = function () { };
+FireBreathObject.prototype.physics = function () {
+    this.direction === 0 ? this.pos.x -= FireBreathObject.SPEED : this.pos.x += FireBreathObject.SPEED;
+};
+FireBreathObject.prototype.interaction = function () {
+    for (var i = 0x0; i < this.game.objects.length; i++) {
+        var obj = this.game.objects[i];
+        if (obj instanceof PlayerObject && obj.isTangible() && obj.level === this.level && obj.zone === this.zone && squar.intersection(obj.pos, obj.dim, this.pos, this.dim)) {
+            obj.pid === this.game.pid && obj.damage(this);
+            this.kill();
+            break;
+        }
+    }
+};
+FireBreathObject.prototype.playerCollide = function (player) { };
+FireBreathObject.prototype.playerStomp = function (player) { };
+FireBreathObject.prototype.playerBump = function (player) { };
+FireBreathObject.prototype.kill = function () {
+    this.dead = true;
+    this.setState(FireBreathObject.STATE.DEAD);
+};
+FireBreathObject.prototype.isTangible = GameObject.prototype.isTangible;
+FireBreathObject.prototype.destroy = GameObject.prototype.destroy;
+FireBreathObject.prototype.setState = function (state) {
+    state !== this.state && (this.state = state, this.sprite = state.SPRITE[0x0], this.anim = 0x0);
+};
+FireBreathObject.prototype.draw = function (spriteList) {
+    if (this.sprite.INDEX instanceof Array)
+        for (var _0x22ac30 = this.sprite.INDEX, _0x1cb97d = 0x0; _0x1cb97d < _0x22ac30.length; _0x1cb97d++)
+            for (var _0x5791f1 = 0x0; _0x5791f1 < _0x22ac30[_0x1cb97d].length; _0x5791f1++) spriteList.push({
+                'pos': vec2.add(vec2.add(this.pos, FireBreathObject.SOFFSET), vec2.make(_0x5791f1, _0x1cb97d)),
+                'reverse': false,
+                'index': _0x22ac30[_0x1cb97d][_0x5791f1]
+            });
+    else spriteList.push({
+        'pos': vec2.add(this.pos, FireBreathObject.SOFFSET),
+        'reverse': this.direction !== 0,
+        'index': this.sprite.INDEX,
+        'mode': 0x0
+    });
+};
+GameObject.REGISTER_OBJECT(FireBreathObject);
+"use strict";
+
+function HammerObject(game, level, zone, pos, owner, delay) {
+    GameObject.call(this, game, level, zone, pos);
+    this.owner = owner;
+    this.setState(HammerObject.STATE.IDLE);
+    this.anim = 0x0;
+    this.throwTimer = delay === undefined ? HammerObject.THROW_DELAY : delay;
+    this.dir = false;
+    this.dim = vec2.make(0.5, 0.5);
+}
+HammerObject.ASYNC = true;
+HammerObject.ID = 0xa3;
+HammerObject.NAME = "HAMMER PROJECTILE";
+HammerObject.ANIMATION_RATE = 0x2;
+HammerObject.SOFFSET = vec2.make(-0.25, -0.25);
+HammerObject.THROW_DELAY = 0xd;
+HammerObject.IMPULSE = vec2.make(0.25, 0.3);
+HammerObject.DRAG = 0.965;
+HammerObject.FALL_SPEED_MAX = 0.3;
+HammerObject.FALL_SPEED_ACCEL = 0.02;
+HammerObject.SPRITE = {};
+HammerObject.SPRITE_LIST = [{
+    'NAME': "IDLE0",
+    'ID': 0x0,
+    'INDEX': 0xdd
+}, {
+    'NAME': "IDLE1",
+    'ID': 0x1,
+    'INDEX': 0xdc
+}, {
+    'NAME': "IDLE2",
+    'ID': 0x2,
+    'INDEX': 0xdf
+}, {
+    'NAME': "IDLE3",
+    'ID': 0x3,
+    'INDEX': 0xde
+}];
+for (var i = 0x0; i < HammerObject.SPRITE_LIST.length; i++) HammerObject.SPRITE[HammerObject.SPRITE_LIST[i].NAME] = HammerObject.SPRITE_LIST[i], HammerObject.SPRITE[HammerObject.SPRITE_LIST[i].ID] = HammerObject.SPRITE_LIST[i];
+HammerObject.STATE = {};
+HammerObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [HammerObject.SPRITE.IDLE0]
+}, {
+    'NAME': "THROW",
+    'ID': 0x1,
+    'SPRITE': [HammerObject.SPRITE.IDLE0, HammerObject.SPRITE.IDLE1, HammerObject.SPRITE.IDLE2, HammerObject.SPRITE.IDLE3]
+}];
+for (var i = 0x0; i < HammerObject.STATE_LIST.length; i++) HammerObject.STATE[HammerObject.STATE_LIST[i].NAME] = HammerObject.STATE_LIST[i], HammerObject.STATE[HammerObject.STATE_LIST[i].ID] = HammerObject.STATE_LIST[i];
+HammerObject.prototype.update = function (packet) { };
+HammerObject.prototype.step = function () {
+    this.anim++;
+    this.sprite = this.state.SPRITE[parseInt(this.anim / HammerObject.ANIMATION_RATE) % this.state.SPRITE.length];
+    0x0 < this.throwTimer ? this.throwTimer-- : (this.state === HammerObject.STATE.IDLE && this.throw(), this.physics(), this.interaction(), 0x0 > this.pos.y && this.destroy());
+};
+HammerObject.prototype.physics = function () {
+    this.moveSpeed *= HammerObject.DRAG;
+    this.fallSpeed = Math.max(this.fallSpeed - HammerObject.FALL_SPEED_ACCEL, -HammerObject.FALL_SPEED_MAX);
+    this.pos = vec2.add(this.pos, vec2.make(this.moveSpeed, this.fallSpeed));
+};
+HammerObject.prototype.interaction = function () {
+    if (this.state === HammerObject.STATE.THROW) {
+        var player = this.game.getPlayer();
+        player && player.isTangible() && player.level === this.level && player.zone === this.zone && squar.intersection(player.pos, player.dim, this.pos, this.dim) && player.damage(this);
+    }
+};
+HammerObject.prototype.throw = function () {
+    this.moveSpeed = this.dir ? HammerObject.IMPULSE.x : -HammerObject.IMPULSE.x;
+    this.fallSpeed = HammerObject.IMPULSE.y;
+    this.setState(HammerObject.STATE.THROW);
+};
+HammerObject.prototype.playerCollide = function (obj) { };
+HammerObject.prototype.playerStomp = function (obj) { };
+HammerObject.prototype.playerBump = function (obj) { };
+HammerObject.prototype.kill = function () { };
+HammerObject.prototype.destroy = GameObject.prototype.destroy;
+HammerObject.prototype.isTangible = GameObject.prototype.isTangible;
+HammerObject.prototype.setState = function (state) {
+    state !== this.state && (this.state = state, this.sprite = state.SPRITE[0x0], this.anim = 0x0);
+};
+HammerObject.prototype.draw = function(spriteList) {
+    if (this.sprite.INDEX instanceof Array) {
+        for (var i = 0; i < this.sprite.INDEX.length; i++) {
+            for (var j = 0; j < this.sprite.INDEX[i].length; j++) {
+                spriteList.push({
+                    'pos': vec2.add(vec2.add(this.pos, HammerObject.SOFFSET), vec2.make(j, i)),
+                    'reverse': false,
+                    'index': this.sprite.INDEX[i][j]
+                });
+            }
+        }
+    } else {
+        spriteList.push({
+            'pos': vec2.add(this.pos, HammerObject.SOFFSET),
+            'reverse': this.dir,
+            'index': this.sprite.INDEX,
+            'mode': 0x0
+        });
+    }
+};
+GameObject.REGISTER_OBJECT(HammerObject);
+"use strict";
+
+function PowerUpObject(game, level, zone, pos, oid, note = false) {
+    GameObject.call(this, game, level, zone, pos);
+    this.oid = oid;
+    this.note = note;
+    this.anim = 0x0;
+    this.dim = vec2.make(0x1, 0.9);
+    this.fallSpeed = this.moveSpeed = 0x0;
+    this.rise = this.grounded = false;
+    var size = vec2.make(0x1, 0x1);
+    var zoneTiles = this.game.world.getZone(this.level, this.zone).getTiles(this.pos, this.dim);
+    for (var i = 0x0; i < zoneTiles.length; i++)
+        if (squar.intersection(zoneTiles[i].pos, size, this.pos, this.dim)) {
+            this.rise = true;
+            break;
+        } this.dir = false;
+    this.jump = -0x1;
+}
+PowerUpObject.ASYNC = true;
+PowerUpObject.ID = 0x50;
+PowerUpObject.ANIMATION_RATE = 0x3;
+PowerUpObject.MOVE_SPEED_MAX = 0.075;
+PowerUpObject.FALL_SPEED_MAX = 0.45;
+PowerUpObject.FALL_SPEED_ACCEL = 0.075;
+PowerUpObject.JUMP_DECEL = 0.015;
+PowerUpObject.JUMP_LENGTH = 0x3;
+PowerUpObject.RISE_RATE = 0.15;
+PowerUpObject.prototype.update = function (packet) {
+    switch (packet) {
+        case 0x0:
+            this.kill();
+    }
+};
+PowerUpObject.prototype.step = function () {
+    this.anim++;
+    this.sprite = this.state.SPRITE[parseInt(this.anim / PowerUpObject.ANIMATION_RATE) % this.state.SPRITE.length];
+    this.control();
+    this.physics();
+    0x0 > this.pos.y && this.kill();
+};
+PowerUpObject.prototype.control = function () {
+    this.jump >= PowerUpObject.JUMP_LENGTH && (this.jump = -0x1);
+};
+PowerUpObject.prototype.physics = function () {
+    if (this.rise) {
+        this.rise = false;
+
+        var tdim = vec2.make(1., 1.);
+        var tiles = this.game.world.getZone(this.level, this.zone).getTiles(this.pos, this.dim);
+        for (var i = 0; i < tiles.length; i++) {
+            var tile = tiles[i];
+            if (!tile.definition.COLLIDE) { continue; }
+            if (squar.intersection(tile.pos, tdim, this.pos, this.dim)) { this.rise = true; break; }
+        }
+
+        if (!this.rise) { return; }
+
+        this.pos.y += this.note ? -PowerUpObject.RISE_RATE : PowerUpObject.RISE_RATE;
+        return;
+    }
+
+    if (this.jump !== -1) {
+        this.fallSpeed = PowerUpObject.FALL_SPEED_MAX - (this.jump * PowerUpObject.JUMP_DECEL);
+        this.jump++;
+    }
+    else {
+        if (this.grounded) {
+            this.fallSpeed = 0;
+        }
+        this.fallSpeed = Math.max(this.fallSpeed - PowerUpObject.FALL_SPEED_ACCEL, -PowerUpObject.FALL_SPEED_MAX);
+    }
+
+    var movx = vec2.add(this.pos, vec2.make(this.moveSpeed, 0.));
+    var movy = vec2.add(this.pos, vec2.make(this.moveSpeed, this.fallSpeed));
+
+    var ext1 = vec2.make(this.moveSpeed >= 0 ? this.pos.x : this.pos.x + this.moveSpeed, this.fallSpeed <= 0 ? this.pos.y : this.pos.y + this.fallSpeed);
+    var ext2 = vec2.make(this.dim.y + Math.abs(this.moveSpeed), this.dim.y + Math.abs(this.fallSpeed));
+    var tiles = this.game.world.getZone(this.level, this.zone).getTiles(ext1, ext2);
+    var tdim = vec2.make(1., 1.);
+
+    var changeDir = false;
+    this.grounded = false;
+    for (var i = 0; i < tiles.length; i++) {
+        var tile = tiles[i];
+        if (!tile.definition.COLLIDE) { continue; }
+
+        var hitx = squar.intersection(tile.pos, tdim, movx, this.dim);
+
+        if (hitx) {
+            if (this.pos.x <= movx.x && movx.x + this.dim.x > tile.pos.x) {
+                movx.x = tile.pos.x - this.dim.x;
+                movy.x = movx.x;
+                this.moveSpeed = 0;
+                changeDir = true;
+            }
+            else if (this.pos.x >= movx.x && movx.x < tile.pos.x + tdim.x) {
+                movx.x = tile.pos.x + tdim.x;
+                movy.x = movx.x;
+                this.moveSpeed = 0;
+                changeDir = true;
+            }
+        }
+    }
+
+    for (var i = 0; i < tiles.length; i++) {
+        var tile = tiles[i];
+        if (!tile.definition.COLLIDE) { continue; }
+
+        var hity = squar.intersection(tile.pos, tdim, movy, this.dim);
+
+        if (hity) {
+            if (this.pos.y >= movy.y && movy.y < tile.pos.y + tdim.y) {
+                movy.y = tile.pos.y + tdim.y;
+                this.grounded = true;
+            }
+            else if (this.pos.y <= movy.y && movy.y + this.dim.y > tile.pos.y) {
+                movy.y = tile.pos.y - this.dim.y;
+                this.jumping = -1;
+                this.fallSpeed = 0;
+            }
+        }
+    }
+    this.pos = vec2.make(movx.x, movy.y);
+    if (changeDir) { this.dir = !this.dir; }
+};
+
+PowerUpObject.prototype.bounce = function () {
+    this.grounded && (this.dir = !this.dir);
+    this.jump = 0x0;
+};
+PowerUpObject.prototype.playerCollide = function (player) {
+    this.dead || this.garbage || (player.powerup(this), this.kill(), this.game.out.push(NET020.encode(this.level, this.zone, this.oid, 0x0)));
+};
+PowerUpObject.prototype.playerStomp = function (obj) {
+    this.playerCollide(obj);
+};
+PowerUpObject.prototype.playerBump = function (obj) {
+    this.playerCollide(obj);
+};
+PowerUpObject.prototype.kill = function () {
+    this.dead = true;
+    this.destroy();
+};
+PowerUpObject.prototype.destroy = GameObject.prototype.destroy;
+PowerUpObject.prototype.isTangible = GameObject.prototype.isTangible;
+PowerUpObject.prototype.setState = function (state) {
+    state !== this.state && (this.state = state, this.sprite = state.SPRITE[0x0], this.anim = 0x0);
+};
+PowerUpObject.prototype.draw = function (spriteList) {
+    spriteList.push({
+        'pos': this.pos,
+        'reverse': this.reverse,
+        'index': this.sprite.INDEX,
+        'mode': 0x0
+    });
+};
+"use strict";
+
+function MushroomObject(game, level, zone, pos, oid, note = false) {
+    PowerUpObject.call(this, game, level, zone, pos, oid, note);
+    this.state = MushroomObject.STATE.IDLE;
+    this.sprite = this.state.SPRITE[0x0];
+}
+MushroomObject.ASYNC = false;
+MushroomObject.ID = 0x51;
+MushroomObject.NAME = "MUSHROOM";
+MushroomObject.SPRITE = {};
+MushroomObject.SPRITE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'INDEX': 0xe9
+}];
+for (var i = 0x0; i < MushroomObject.SPRITE_LIST.length; i++) MushroomObject.SPRITE[MushroomObject.SPRITE_LIST[i].NAME] = MushroomObject.SPRITE_LIST[i], MushroomObject.SPRITE[MushroomObject.SPRITE_LIST[i].ID] = MushroomObject.SPRITE_LIST[i];
+MushroomObject.STATE = {};
+MushroomObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [MushroomObject.SPRITE.IDLE]
+}];
+for (var i = 0x0; i < MushroomObject.STATE_LIST.length; i++) MushroomObject.STATE[MushroomObject.STATE_LIST[i].NAME] = MushroomObject.STATE_LIST[i], MushroomObject.STATE[MushroomObject.STATE_LIST[i].ID] = MushroomObject.STATE_LIST[i];
+MushroomObject.prototype.update = PowerUpObject.prototype.update;
+MushroomObject.prototype.step = PowerUpObject.prototype.step;
+MushroomObject.prototype.control = function () {
+    PowerUpObject.prototype.control.call(this);
+    this.moveSpeed = this.dir ? -PowerUpObject.MOVE_SPEED_MAX : PowerUpObject.MOVE_SPEED_MAX;
+};
+MushroomObject.prototype.physics = PowerUpObject.prototype.physics;
+MushroomObject.prototype.bounce = PowerUpObject.prototype.bounce;
+MushroomObject.prototype.playerCollide = PowerUpObject.prototype.playerCollide;
+MushroomObject.prototype.playerStomp = PowerUpObject.prototype.playerStomp;
+MushroomObject.prototype.playerBump = PowerUpObject.prototype.playerBump;
+MushroomObject.prototype.kill = PowerUpObject.prototype.kill;
+MushroomObject.prototype.destroy = GameObject.prototype.destroy;
+MushroomObject.prototype.isTangible = GameObject.prototype.isTangible;
+MushroomObject.prototype.setState = PowerUpObject.prototype.setState;
+MushroomObject.prototype.draw = PowerUpObject.prototype.draw;
+GameObject.REGISTER_OBJECT(MushroomObject);
+"use strict";
+
+function FlowerObject(game, level, zone, pos, oid, note = false) {
+    PowerUpObject.call(this, game, level, zone, pos, oid);
+    this.state = FlowerObject.STATE.IDLE;
+    this.note = note;
+    this.sprite = this.state.SPRITE[0x0];
+}
+FlowerObject.ASYNC = false;
+FlowerObject.ID = 0x52;
+FlowerObject.NAME = "FIRE FLOWER";
+FlowerObject.SPRITE = {};
+FlowerObject.SPRITE_LIST = [{
+    'NAME': "IDLE0",
+    'ID': 0x0,
+    'INDEX': 0xe4
+}, {
+    'NAME': "IDLE1",
+    'ID': 0x1,
+    'INDEX': 0xe5
+}, {
+    'NAME': "IDLE2",
+    'ID': 0x2,
+    'INDEX': 0xe6
+}, {
+    'NAME': "IDLE3",
+    'ID': 0x3,
+    'INDEX': 0xe7
+}];
+for (var i = 0x0; i < FlowerObject.SPRITE_LIST.length; i++) FlowerObject.SPRITE[FlowerObject.SPRITE_LIST[i].NAME] = FlowerObject.SPRITE_LIST[i], FlowerObject.SPRITE[FlowerObject.SPRITE_LIST[i].ID] = FlowerObject.SPRITE_LIST[i];
+FlowerObject.STATE = {};
+FlowerObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [FlowerObject.SPRITE.IDLE0, FlowerObject.SPRITE.IDLE1, FlowerObject.SPRITE.IDLE2, FlowerObject.SPRITE.IDLE3]
+}];
+for (var i = 0x0; i < FlowerObject.STATE_LIST.length; i++) FlowerObject.STATE[FlowerObject.STATE_LIST[i].NAME] = FlowerObject.STATE_LIST[i], FlowerObject.STATE[FlowerObject.STATE_LIST[i].ID] = FlowerObject.STATE_LIST[i];
+FlowerObject.prototype.update = PowerUpObject.prototype.update;
+FlowerObject.prototype.step = PowerUpObject.prototype.step;
+FlowerObject.prototype.control = function () { };
+FlowerObject.prototype.physics = PowerUpObject.prototype.physics;
+FlowerObject.prototype.playerCollide = PowerUpObject.prototype.playerCollide;
+FlowerObject.prototype.playerStomp = PowerUpObject.prototype.playerStomp;
+FlowerObject.prototype.playerBump = PowerUpObject.prototype.playerBump;
+FlowerObject.prototype.kill = PowerUpObject.prototype.kill;
+FlowerObject.prototype.destroy = GameObject.prototype.destroy;
+FlowerObject.prototype.isTangible = GameObject.prototype.isTangible;
+FlowerObject.prototype.setState = PowerUpObject.prototype.setState;
+FlowerObject.prototype.draw = PowerUpObject.prototype.draw;
+GameObject.REGISTER_OBJECT(FlowerObject);
+"use strict";
+
+function GoldFlowerObject(game, level, zone, pos, oid, note = false) {
+    PowerUpObject.call(this, game, level, zone, pos, oid);
+    this.state = GoldFlowerObject.STATE.IDLE;
+    this.note = note;
+    this.sprite = this.state.SPRITE[0x0];
+}
+GoldFlowerObject.ASYNC = false;
+GoldFlowerObject.ID = 0x64;
+GoldFlowerObject.NAME = "GOLD FLOWER";
+GoldFlowerObject.SPRITE = {};
+GoldFlowerObject.SPRITE_LIST = [{
+    'NAME': "IDLE0",
+    'ID': 0x0,
+    'INDEX': 184
+}, {
+    'NAME': "IDLE1",
+    'ID': 0x1,
+    'INDEX': 185
+}, {
+    'NAME': "IDLE2",
+    'ID': 0x2,
+    'INDEX': 186
+}, {
+    'NAME': "IDLE3",
+    'ID': 0x3,
+    'INDEX': 187
+}];
+for (var i = 0x0; i < GoldFlowerObject.SPRITE_LIST.length; i++) GoldFlowerObject.SPRITE[GoldFlowerObject.SPRITE_LIST[i].NAME] = GoldFlowerObject.SPRITE_LIST[i], GoldFlowerObject.SPRITE[GoldFlowerObject.SPRITE_LIST[i].ID] = GoldFlowerObject.SPRITE_LIST[i];
+GoldFlowerObject.STATE = {};
+GoldFlowerObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [GoldFlowerObject.SPRITE.IDLE0, GoldFlowerObject.SPRITE.IDLE1, GoldFlowerObject.SPRITE.IDLE2, GoldFlowerObject.SPRITE.IDLE3]
+}];
+for (var i = 0x0; i < GoldFlowerObject.STATE_LIST.length; i++) GoldFlowerObject.STATE[GoldFlowerObject.STATE_LIST[i].NAME] = GoldFlowerObject.STATE_LIST[i], GoldFlowerObject.STATE[GoldFlowerObject.STATE_LIST[i].ID] = GoldFlowerObject.STATE_LIST[i];
+GoldFlowerObject.prototype.update = PowerUpObject.prototype.update;
+GoldFlowerObject.prototype.step = PowerUpObject.prototype.step;
+GoldFlowerObject.prototype.control = function () { };
+GoldFlowerObject.prototype.physics = PowerUpObject.prototype.physics;
+GoldFlowerObject.prototype.playerCollide = function (player) {
+    if (!(this.dead || this.garbage)) {
+        player.powerupVisual(this);
+        this.kill();
+        this.game.out.push(NET020.encode(this.level, this.zone, this.oid, 0x0));
+    }
+};
+GoldFlowerObject.prototype.playerStomp = PowerUpObject.prototype.playerStomp;
+GoldFlowerObject.prototype.playerBump = PowerUpObject.prototype.playerBump;
+GoldFlowerObject.prototype.kill = PowerUpObject.prototype.kill;
+GoldFlowerObject.prototype.destroy = GameObject.prototype.destroy;
+GoldFlowerObject.prototype.isTangible = GameObject.prototype.isTangible;
+GoldFlowerObject.prototype.setState = PowerUpObject.prototype.setState;
+GoldFlowerObject.prototype.draw = PowerUpObject.prototype.draw;
+GameObject.REGISTER_OBJECT(GoldFlowerObject);
+"use strict";
+
+function StarObject(game, level, zone, pos, oid, static = 0, note = false) {
+    PowerUpObject.call(this, game, level, zone, pos, oid);
+    this.state = StarObject.STATE.IDLE;
+    this.sprite = this.state.SPRITE[0x0];
+    this.note = note;
+    this.groundTimer = 0x0;
+    this.static = (() => { if (static == "0") return false; else return true; })();
+}
+StarObject.ASYNC = false;
+StarObject.ID = 0x54;
+StarObject.NAME = "STAR";
+StarObject.JUMP_LENGTH = 0x6;
+StarObject.MOVE_SPEED_MAX = 0.125;
+StarObject.JUMP_DELAY = 0x2;
+StarObject.SPRITE = {};
+StarObject.SPRITE_LIST = [{
+    'NAME': "IDLE0",
+    'ID': 0x0,
+    'INDEX': 0xe0
+}, {
+    'NAME': "IDLE1",
+    'ID': 0x1,
+    'INDEX': 0xe1
+}, {
+    'NAME': "IDLE2",
+    'ID': 0x2,
+    'INDEX': 0xe2
+}, {
+    'NAME': "IDLE3",
+    'ID': 0x3,
+    'INDEX': 0xe3
+}];
+for (var i = 0x0; i < StarObject.SPRITE_LIST.length; i++) StarObject.SPRITE[StarObject.SPRITE_LIST[i].NAME] = StarObject.SPRITE_LIST[i], StarObject.SPRITE[StarObject.SPRITE_LIST[i].ID] = StarObject.SPRITE_LIST[i];
+StarObject.STATE = {};
+StarObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [StarObject.SPRITE.IDLE0, StarObject.SPRITE.IDLE1, StarObject.SPRITE.IDLE2, StarObject.SPRITE.IDLE3]
+}];
+for (var i = 0x0; i < StarObject.STATE_LIST.length; i++) StarObject.STATE[StarObject.STATE_LIST[i].NAME] = StarObject.STATE_LIST[i], StarObject.STATE[StarObject.STATE_LIST[i].ID] = StarObject.STATE_LIST[i];
+StarObject.prototype.update = PowerUpObject.prototype.update;
+StarObject.prototype.step = PowerUpObject.prototype.step;
+StarObject.prototype.control = function () {
+    this.moveSpeed = this.dir ? (!this.static ? -StarObject.MOVE_SPEED_MAX : 0) : (!this.static ? StarObject.MOVE_SPEED_MAX : 0);
+    if (!this.static) this.grounded && ++this.groundTimer >= StarObject.JUMP_DELAY ? this.jump = 0x0 : this.jump > StarObject.JUMP_LENGTH && (this.jump = -0x1, this.groundTimer = 0x0);
+};
+StarObject.prototype.physics = PowerUpObject.prototype.physics;
+StarObject.prototype.bounce = PowerUpObject.prototype.bounce;
+StarObject.prototype.playerCollide = PowerUpObject.prototype.playerCollide;
+StarObject.prototype.playerStomp = PowerUpObject.prototype.playerStomp;
+StarObject.prototype.playerBump = PowerUpObject.prototype.playerBump;
+StarObject.prototype.kill = PowerUpObject.prototype.kill;
+StarObject.prototype.destroy = GameObject.prototype.destroy;
+StarObject.prototype.isTangible = GameObject.prototype.isTangible;
+StarObject.prototype.setState = PowerUpObject.prototype.setState;
+StarObject.prototype.draw = PowerUpObject.prototype.draw;
+GameObject.REGISTER_OBJECT(StarObject);
+"use strict";
+
+function LifeObject(game, level, zone, pos, oid, note) {
+    PowerUpObject.call(this, game, level, zone, pos, oid);
+    this.state = LifeObject.STATE.IDLE;
+    this.note = note;
+    this.sprite = this.state.SPRITE[0x0];
+}
+LifeObject.ASYNC = false;
+LifeObject.ID = 0x53;
+LifeObject.NAME = "ONEUP";
+LifeObject.SPRITE = {};
+LifeObject.SPRITE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'INDEX': 0xe8
+}];
+for (var i = 0x0; i < LifeObject.SPRITE_LIST.length; i++) LifeObject.SPRITE[LifeObject.SPRITE_LIST[i].NAME] = LifeObject.SPRITE_LIST[i], LifeObject.SPRITE[LifeObject.SPRITE_LIST[i].ID] = LifeObject.SPRITE_LIST[i];
+LifeObject.STATE = {};
+LifeObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [LifeObject.SPRITE.IDLE]
+}];
+for (var i = 0x0; i < LifeObject.STATE_LIST.length; i++) LifeObject.STATE[LifeObject.STATE_LIST[i].NAME] = LifeObject.STATE_LIST[i], LifeObject.STATE[LifeObject.STATE_LIST[i].ID] = LifeObject.STATE_LIST[i];
+LifeObject.prototype.update = PowerUpObject.prototype.update;
+LifeObject.prototype.step = PowerUpObject.prototype.step;
+LifeObject.prototype.control = function () {
+    PowerUpObject.prototype.control.call(this);
+    this.moveSpeed = this.dir ? -PowerUpObject.MOVE_SPEED_MAX : PowerUpObject.MOVE_SPEED_MAX;
+};
+LifeObject.prototype.physics = PowerUpObject.prototype.physics;
+LifeObject.prototype.bounce = PowerUpObject.prototype.bounce;
+LifeObject.prototype.playerCollide = PowerUpObject.prototype.playerCollide;
+LifeObject.prototype.playerStomp = PowerUpObject.prototype.playerStomp;
+LifeObject.prototype.playerBump = PowerUpObject.prototype.playerBump;
+LifeObject.prototype.kill = PowerUpObject.prototype.kill;
+LifeObject.prototype.destroy = GameObject.prototype.destroy;
+LifeObject.prototype.isTangible = GameObject.prototype.isTangible;
+LifeObject.prototype.setState = PowerUpObject.prototype.setState;
+LifeObject.prototype.draw = PowerUpObject.prototype.draw;
+GameObject.REGISTER_OBJECT(LifeObject);
+"use strict";
+
+function AxeObject(game, level, zone, pos, oid) {
+    PowerUpObject.call(this, game, level, zone, pos, oid);
+    this.state = AxeObject.STATE.IDLE;
+    this.sprite = this.state.SPRITE[0x0];
+    this.used = false;
+    this.dim = vec2.make(0x1, 0x3);
+    this.riseDim = vec2.make(0x1, 0.9);
+}
+AxeObject.ASYNC = true;
+AxeObject.ID = 0x55;
+AxeObject.NAME = "AXE";
+AxeObject.SPRITE = {};
+AxeObject.SPRITE_LIST = [{
+    'NAME': "IDLE0",
+    'ID': 0x0,
+    'INDEX': 0xec
+}, {
+    'NAME': "IDLE1",
+    'ID': 0x1,
+    'INDEX': 0xed
+}, {
+    'NAME': "IDLE2",
+    'ID': 0x2,
+    'INDEX': 0xee
+}, {
+    'NAME': "IDLE3",
+    'ID': 0x3,
+    'INDEX': 0xef
+}];
+for (var i = 0x0; i < AxeObject.SPRITE_LIST.length; i++) AxeObject.SPRITE[AxeObject.SPRITE_LIST[i].NAME] = AxeObject.SPRITE_LIST[i], AxeObject.SPRITE[AxeObject.SPRITE_LIST[i].ID] = AxeObject.SPRITE_LIST[i];
+AxeObject.STATE = {};
+AxeObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [AxeObject.SPRITE.IDLE0, AxeObject.SPRITE.IDLE1, AxeObject.SPRITE.IDLE2, AxeObject.SPRITE.IDLE3]
+}];
+for (var i = 0x0; i < AxeObject.STATE_LIST.length; i++) AxeObject.STATE[AxeObject.STATE_LIST[i].NAME] = AxeObject.STATE_LIST[i], AxeObject.STATE[AxeObject.STATE_LIST[i].ID] = AxeObject.STATE_LIST[i];
+AxeObject.prototype.update = function (packet) { };
+AxeObject.prototype.step = PowerUpObject.prototype.step;
+AxeObject.prototype.control = function () { };
+AxeObject.prototype.physics = PowerUpObject.prototype.physics;
+AxeObject.prototype.playerCollide = function (player) {
+    if (!(this.dead || this.garbage || this.used)) {
+        player.powerup(this);
+        this.used = true;
+        for (var i = 0; i < this.game.objects.length; i++) {
+            var obj = this.game.objects[i];
+            if (obj instanceof BowserObject && obj.level === this.level && obj.zone === this.zone && !obj.dead) {
+                obj.bonk();
+                break;
+            }
+        }
+    }
+};
+AxeObject.prototype.playerStomp = PowerUpObject.prototype.playerStomp;
+AxeObject.prototype.playerBump = PowerUpObject.prototype.playerBump;
+AxeObject.prototype.kill = PowerUpObject.prototype.kill;
+AxeObject.prototype.isTangible = GameObject.prototype.isTangible;
+AxeObject.prototype.destroy = GameObject.prototype.destroy;
+AxeObject.prototype.setState = PowerUpObject.prototype.setState;
+AxeObject.prototype.draw = PowerUpObject.prototype.draw;
+GameObject.REGISTER_OBJECT(AxeObject);
+"use strict";
+
+function PoisonMushroomObject(game, level, zone, pos, oid) {
+    PowerUpObject.call(this, game, level, zone, pos, oid);
+    this.state = PoisonMushroomObject.STATE.IDLE;
+    this.sprite = this.state.SPRITE[0x0];
+}
+PoisonMushroomObject.ASYNC = false;
+PoisonMushroomObject.ID = 0x56;
+PoisonMushroomObject.NAME = "POISON MUSHROOM";
+PoisonMushroomObject.SPRITE = {};
+PoisonMushroomObject.SPRITE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'INDEX': 0xea
+}];
+for (var i = 0x0; i < PoisonMushroomObject.SPRITE_LIST.length; i++) PoisonMushroomObject.SPRITE[PoisonMushroomObject.SPRITE_LIST[i].NAME] = PoisonMushroomObject.SPRITE_LIST[i], PoisonMushroomObject.SPRITE[PoisonMushroomObject.SPRITE_LIST[i].ID] = PoisonMushroomObject.SPRITE_LIST[i];
+PoisonMushroomObject.STATE = {};
+PoisonMushroomObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [PoisonMushroomObject.SPRITE.IDLE]
+}];
+for (var i = 0x0; i < PoisonMushroomObject.STATE_LIST.length; i++) PoisonMushroomObject.STATE[PoisonMushroomObject.STATE_LIST[i].NAME] = PoisonMushroomObject.STATE_LIST[i], PoisonMushroomObject.STATE[PoisonMushroomObject.STATE_LIST[i].ID] = PoisonMushroomObject.STATE_LIST[i];
+PoisonMushroomObject.prototype.update = PowerUpObject.prototype.update;
+PoisonMushroomObject.prototype.step = PowerUpObject.prototype.step;
+PoisonMushroomObject.prototype.control = function () {
+    PowerUpObject.prototype.control.call(this);
+    this.moveSpeed = this.dir ? -PowerUpObject.MOVE_SPEED_MAX : PowerUpObject.MOVE_SPEED_MAX;
+};
+PoisonMushroomObject.prototype.physics = PowerUpObject.prototype.physics;
+PoisonMushroomObject.prototype.bounce = PowerUpObject.prototype.bounce;
+PoisonMushroomObject.prototype.playerCollide = PowerUpObject.prototype.playerCollide;
+PoisonMushroomObject.prototype.playerStomp = PowerUpObject.prototype.playerStomp;
+PoisonMushroomObject.prototype.playerBump = PowerUpObject.prototype.playerBump;
+PoisonMushroomObject.prototype.kill = PowerUpObject.prototype.kill;
+PoisonMushroomObject.prototype.destroy = GameObject.prototype.destroy;
+PoisonMushroomObject.prototype.isTangible = GameObject.prototype.isTangible;
+PoisonMushroomObject.prototype.setState = PowerUpObject.prototype.setState;
+PoisonMushroomObject.prototype.draw = PowerUpObject.prototype.draw;
+GameObject.REGISTER_OBJECT(PoisonMushroomObject);
+"use strict";
+
+function CoinObject(game, level, zone, pos, oid) {
+    GameObject.call(this, game, level, zone, pos);
+    this.oid = oid;
+    this.state = CoinObject.STATE.IDLE;
+    this.sprite = this.state.SPRITE[0x0];
+    this.anim = 0x0;
+    this.dim = vec2.make(0x1, 0x1);
+}
+CoinObject.ASYNC = false;
+CoinObject.ID = 0x61;
+CoinObject.NAME = "COIN";
+CoinObject.ANIMATION_RATE = 0x5;
+CoinObject.SPRITE = {};
+CoinObject.SPRITE_LIST = [{
+    'NAME': "IDLE0",
+    'ID': 0x0,
+    'INDEX': 0xf0
+}, {
+    'NAME': "IDLE1",
+    'ID': 0x1,
+    'INDEX': 0xf1
+}, {
+    'NAME': "IDLE2",
+    'ID': 0x2,
+    'INDEX': 0xf2
+}, {
+    'NAME': "IDLE3",
+    'ID': 0x3,
+    'INDEX': 0xf3
+}];
+for (var i = 0x0; i < CoinObject.SPRITE_LIST.length; i++) CoinObject.SPRITE[CoinObject.SPRITE_LIST[i].NAME] = CoinObject.SPRITE_LIST[i], CoinObject.SPRITE[CoinObject.SPRITE_LIST[i].ID] = CoinObject.SPRITE_LIST[i];
+CoinObject.STATE = {};
+CoinObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [CoinObject.SPRITE.IDLE0, CoinObject.SPRITE.IDLE1, CoinObject.SPRITE.IDLE2, CoinObject.SPRITE.IDLE3]
+}];
+for (var i = 0x0; i < CoinObject.STATE_LIST.length; i++) CoinObject.STATE[CoinObject.STATE_LIST[i].NAME] = CoinObject.STATE_LIST[i], CoinObject.STATE[CoinObject.STATE_LIST[i].ID] = CoinObject.STATE_LIST[i];
+CoinObject.prototype.update = function (type) {
+    switch (type) {
+        case 0x0:
+            this.kill();
+            break;
+        case 160:
+            this.kill();
+            break;
+    }
+};
+CoinObject.prototype.step = function () {
+    this.anim++;
+    this.sprite = this.state.SPRITE[parseInt(this.anim / CoinObject.ANIMATION_RATE) % this.state.SPRITE.length];
+};
+CoinObject.prototype.playerCollide = function (player, type) {
+    if (this.dead || this.garbage) return;
+    player.powerupVisual(this);
+    this.kill();
+    this.game.out.push(NET020.encode(this.level, this.zone, this.oid, this.jump ? 0xa1 : 0xa0));
+};
+CoinObject.prototype.playerStomp = function (p) {
+    this.playerCollide(p);
+};
+CoinObject.prototype.playerBump = function (p) {
+    this.playerCollide(p);
+};
+CoinObject.prototype.kill = function () {
+    this.dead = true;
+    this.destroy();
+};
+CoinObject.prototype.isTangible = GameObject.prototype.isTangible;
+CoinObject.prototype.destroy = GameObject.prototype.destroy;
+CoinObject.prototype.setState = function (state) {
+    state !== this.state && (this.state = state, this.sprite = state.SPRITE[0x0], this.anim = 0x0);
+};
+CoinObject.prototype.draw = function (spriteList) {
+    spriteList.push({
+        'pos': this.pos,
+        'reverse': this.reverse,
+        'index': this.sprite.INDEX,
+        'mode': 0x0
+    });
+};
+GameObject.REGISTER_OBJECT(CoinObject);
+"use strict";
+
+function CheckObject(game, level, zone, pos, oid) {
+    GameObject.call(this, game, level, zone, pos);
+    this.oid = oid;
+    this.setState(CheckObject.STATE.IDLE);
+    this.anim = 0x0;
+}
+CheckObject.ASYNC = true;
+CheckObject.ID = 0xfe;
+CheckObject.NAME = "CHECKMARK";
+CheckObject.ANIMATION_RATE = 0x3;
+CheckObject.SPRITE = {};
+CheckObject.SPRITE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'INDEX': 0xfe
+}];
+for (var i = 0x0; i < CheckObject.SPRITE_LIST.length; i++) CheckObject.SPRITE[CheckObject.SPRITE_LIST[i].NAME] = CheckObject.SPRITE_LIST[i], CheckObject.SPRITE[CheckObject.SPRITE_LIST[i].ID] = CheckObject.SPRITE_LIST[i];
+CheckObject.STATE = {};
+CheckObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [CheckObject.SPRITE.IDLE]
+}];
+for (var i = 0x0; i < CheckObject.STATE_LIST.length; i++) CheckObject.STATE[CheckObject.STATE_LIST[i].NAME] = CheckObject.STATE_LIST[i], CheckObject.STATE[CheckObject.STATE_LIST[i].ID] = CheckObject.STATE_LIST[i];
+CheckObject.prototype.update = function (packet) { };
+CheckObject.prototype.step = function () {
+    this.anim++;
+    this.sprite = this.state.SPRITE[parseInt(this.anim / CheckObject.ANIMATION_RATE) % this.state.SPRITE.length];
+};
+CheckObject.prototype.kill = function () { };
+CheckObject.prototype.isTangible = GameObject.prototype.isTangible;
+CheckObject.prototype.destroy = GameObject.prototype.destroy;
+CheckObject.prototype.setState = function (state) {
+    state !== this.state && (this.state = state, this.sprite = state.SPRITE[0x0], this.anim = 0x0);
+};
+CheckObject.prototype.draw = function (spriteList) {
+    spriteList.push({
+        'pos': this.pos,
+        'reverse': false,
+        'index': this.sprite.INDEX,
+        'mode': 0x0
+    });
+};
+GameObject.REGISTER_OBJECT(CheckObject);
+"use strict";
+
+function TextObject(game, level, zone, pos, oid, offset, size, color, text) {
+    GameObject.call(this, game, level, zone, pos);
+    this.oid = oid;
+    this.setState(TextObject.STATE.IDLE);
+    this.offset = vec2.make(0x0, parseFloat(offset));
+    this.size = parseFloat(size);
+    this.color = color;
+    this.text = text;
+}
+TextObject.ASYNC = true;
+TextObject.ID = 0xfd;
+TextObject.NAME = "TEXT";
+TextObject.ANIMATION_RATE = 0x3;
+TextObject.SPRITE = {};
+TextObject.SPRITE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'INDEX': 0xff
+}];
+for (var i = 0x0; i < TextObject.SPRITE_LIST.length; i++) TextObject.SPRITE[TextObject.SPRITE_LIST[i].NAME] = TextObject.SPRITE_LIST[i], TextObject.SPRITE[TextObject.SPRITE_LIST[i].ID] = TextObject.SPRITE_LIST[i];
+TextObject.STATE = {};
+TextObject.STATE_LIST = [{
+    'NAME': "IDLE",
+    'ID': 0x0,
+    'SPRITE': [TextObject.SPRITE.IDLE]
+}];
+for (var i = 0x0; i < TextObject.STATE_LIST.length; i++) TextObject.STATE[TextObject.STATE_LIST[i].NAME] = TextObject.STATE_LIST[i], TextObject.STATE[TextObject.STATE_LIST[i].ID] = TextObject.STATE_LIST[i];
+TextObject.prototype.update = function (_0x250c1c) { };
+TextObject.prototype.step = function () { };
+TextObject.prototype.kill = function () { };
+TextObject.prototype.destroy = GameObject.prototype.destroy;
+TextObject.prototype.isTangible = GameObject.prototype.isTangible;
+TextObject.prototype.setState = function (state) {
+    state !== this.state && (this.state = state, this.sprite = state.SPRITE[0x0], this.anim = 0x0);
+};
+TextObject.prototype.write = function (textList) {
+    textList.push({
+        'pos': vec2.add(this.pos, this.offset),
+        'size': this.size,
+        'color': this.color,
+        'text': this.text
+    });
+};
+GameObject.REGISTER_OBJECT(TextObject);
+"use strict";
+
+function TempEffect(position/*: vec2*/) {
+    this.pos = position;
+    this.garbage = false;
+}
+TempEffect.prototype.step = function () {
+    0x1 > this.life-- && this.destroy();
+};
+TempEffect.prototype.destroy = function () {
+    this.garbage = true;
+};
+TempEffect.prototype.draw = function (displayList, textList) { };
+"use strict";
+
+function BreakBlockEffect(_0x4363a0, _0x2e3146) {
+    TempEffect.call(this, _0x4363a0);
+    this.sprite = _0x2e3146;
+    this.life = 0x19;
+    this.bits = [{
+        'pos': vec2.add(this.pos, vec2.make(0x0, 0x0)),
+        'vel': vec2.make(-0.24, 0.9),
+        'rot': 0x0,
+        'ang': -0.3,
+        'sp': vec2.make(0x0, 0x0),
+        'ss': vec2.make(0.5, 0.5),
+        'so': vec2.make(0.25, 0.25)
+    }, {
+        'pos': vec2.add(this.pos, vec2.make(0.5, 0x0)),
+        'vel': vec2.make(0.24, 0.9),
+        'rot': 0x0,
+        'ang': 0.3,
+        'sp': vec2.make(0.5, 0x0),
+        'ss': vec2.make(0.5, 0.5),
+        'so': vec2.make(0.25, 0.25)
+    }, {
+        'pos': vec2.add(this.pos, vec2.make(0x0, -0.5)),
+        'vel': vec2.make(-0.3, 0.5),
+        'rot': 0x0,
+        'ang': -0.33,
+        'sp': vec2.make(0x0, 0.5),
+        'ss': vec2.make(0.5, 0.5),
+        'so': vec2.make(0.25, 0.25)
+    }, {
+        'pos': vec2.add(this.pos, vec2.make(0.5, -0.5)),
+        'vel': vec2.make(0.3, 0.5),
+        'rot': 0x0,
+        'ang': 0.33,
+        'sp': vec2.make(0.5, 0.5),
+        'ss': vec2.make(0.5, 0.5),
+        'so': vec2.make(0.25, 0.25)
+    }];
+}
+BreakBlockEffect.FALL_SPEED = 0.0775;
+BreakBlockEffect.DRAG = 0.975;
+BreakBlockEffect.prototype.step = function () {
+    for (var i = 0x0; i < this.bits.length; i++) {
+        var bit = this.bits[i];
+        bit.vel.y -= BreakBlockEffect.FALL_SPEED;
+        bit.vel = vec2.scale(bit.vel, BreakBlockEffect.DRAG);
+        bit.pos = vec2.add(bit.pos, bit.vel);
+        bit.ang *= BreakBlockEffect.DRAG;
+        bit.rot += bit.ang;
+    }
+    TempEffect.prototype.step.call(this);
+};
+BreakBlockEffect.prototype.destroy = TempEffect.prototype.destroy;
+BreakBlockEffect.prototype.draw = function (displayList, textList) {
+    for (var i = 0x0; i < this.bits.length; i++) {
+        var bit = this.bits[i];
+        displayList.push({
+            'tex': "map",
+            'ind': this.sprite,
+            'pos': bit.pos,
+            'off': bit.so,
+            'rot': bit.rot,
+            'sp': bit.sp,
+            'ss': bit.ss
+        });
+    }
+};
+"use strict";
+
+function JumpingCoinEffect(position) {  //position : vec2
+    TempEffect.call(this, position);
+    this.life = JumpingCoinEffect.UP_TIME + JumpingCoinEffect.DOWN_TIME;
+    this.anim = this.sprite = 0x0;
+    this.bits = [{
+        'pos': vec2.add(this.pos, vec2.make(0x0, 0x0)),
+        'sp': vec2.make(0x0, 0x0),
+        'ss': vec2.make(0x1, 0x1),
+        'so': vec2.make(0x0, 0x0)
+    }];
+}
+JumpingCoinEffect.SPRITE = [0xf4, 0xf5, 0xf6, 0xf7];
+JumpingCoinEffect.ANIMATION_RATE = 0x2;
+JumpingCoinEffect.MOVE_SPEED = 0.375;
+JumpingCoinEffect.UP_TIME = 0x8;
+JumpingCoinEffect.DOWN_TIME = 0x6;
+JumpingCoinEffect.prototype.step = function () {
+    TempEffect.prototype.step.call(this);
+    this.sprite = JumpingCoinEffect.SPRITE[parseInt(this.anim++ / JumpingCoinEffect.ANIMATION_RATE) % JumpingCoinEffect.SPRITE.length];
+    this.bits[0x0].pos.y = this.life >= JumpingCoinEffect.DOWN_TIME ? this.bits[0x0].pos.y + JumpingCoinEffect.MOVE_SPEED : this.bits[0x0].pos.y - JumpingCoinEffect.MOVE_SPEED;
+};
+JumpingCoinEffect.prototype.destroy = TempEffect.prototype.destroy;
+JumpingCoinEffect.prototype.draw = function (displayList, textList) {
+    for (var i = 0x0; i < this.bits.length; i++) {
+        var bit = this.bits[i];
+        displayList.push({ 'tex': "obj", 'ind': this.sprite, 'pos': bit.pos, 'off': bit.so, 'rot': 0x0, 'sp': bit.sp, 'ss': bit.ss });
+    }
+};
+
+function RisingLabelEffect(position, label) {  //position : vec2
+    TempEffect.call(this, vec2.add(position, vec2.make(0, 0.5)));
+    this.pos.y = Math.min(this.pos.y, 12);
+    this.label = label;
+    this.life = RisingLabelEffect.UP_TIME;
+}
+RisingLabelEffect.SPRITE = [0xf4, 0xf5, 0xf6, 0xf7];
+RisingLabelEffect.ANIMATION_RATE = 0x2;
+RisingLabelEffect.MOVE_SPEED = 0.375;
+RisingLabelEffect.UP_TIME = 60;
+RisingLabelEffect.prototype.step = function () {
+    TempEffect.prototype.step.call(this);
+    this.pos.y += 0.025;
+};
+RisingLabelEffect.prototype.destroy = TempEffect.prototype.destroy;
+RisingLabelEffect.prototype.draw = function (displayList, textList) {
+    textList.push({ pos: this.pos, color: "white", size: 0.4, text: this.label });
+};
+
+"use strict";
+function Input(game, container) {
+    this.game = game;
+    this.container = container;
+    var that = this;
+    this.container.onmousemove = function (event) {
+        that.mouse.event(event);
+    };
+    this.container.onmousedown = function (event) {
+        that.mouse.event(event, true);
+    };
+    this.container.onmouseup = function (event) {
+        that.mouse.event(event, false);
+    };
+    this.container.addEventListener("mousewheel", function (event) {
+        that.mouse.wheel(event);
+    }, false);
+    this.container.addEventListener("DOMMouseScroll", function (event) {
+        that.mouse.wheel(event);
+    }, false);
+    document.onkeyup = function (event) {
+        that.keyboard.event(event, false);
+    };
+    document.onkeydown = function (event) {
+        that.keyboard.event(event, true);
+    };
+    this.touchEvt = function (event) {
+        app.game.input.touch.event(event);
+    };
+    document.addEventListener("touchstart", this.touchEvt, true);
+    document.addEventListener("touchmove", this.touchEvt, true);
+    document.addEventListener("touchend", this.touchEvt, true);
+    this.mouse.input = this;
+    this.keyboard.input = this;
+    this.touch.input = this;
+    this.load();
+}
+Input.INPUTS = "up down left right a b ta".split('\x20');
+Input.K_DEFAULT = [0x57, 0x53, 0x41, 0x44, 0x20, 0x10, 89];
+Input.G_DEFAULT = [0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 6];
+Input.prototype.load = function () {
+    this.assignK = {};
+    for (var i = 0x0; i < Input.INPUTS.length; i++) {
+        var key = Cookies.get('k_' + Input.INPUTS[i]);
+        this.assignK[Input.INPUTS[i]] = key ? parseInt(key) : Input.K_DEFAULT[i];
+    }
+    this.assignG = {};
+    for (i = 0x0; i < Input.INPUTS.length; i++) {
+        var btn = Cookies.get('g_' + Input.INPUTS[i]);
+        this.assignG[Input.INPUTS[i]] = btn ? parseInt(btn) : Input.G_DEFAULT[i];
+    }
+};
+Input.prototype.pad = {};
+Input.prototype.pad.pad = undefined;
+Input.prototype.pad.ax = vec2.make(0x0, 0x0);
+Input.prototype.pad.update = function () {
+    this.pad = navigator.getGamepads ? navigator.getGamepads()[0x0] : undefined;
+    this.analog();
+};
+Input.prototype.pad.analog = function () {
+    if (this.pad)
+        for (var i = 0x0; i < this.pad.axes.length - 0x1; i++) {
+            var axe = this.pad.axes[i], _0x5f2255 = this.pad.axes[i + 0x1];
+            if (!(0.25 > Math.abs(axe) && 0.25 > Math.abs(_0x5f2255))) {
+                this.ax = vec2.make(axe, _0x5f2255); return;
+            }
+        }
+    this.ax = vec2.make(0x0, 0x0);
+};
+Input.prototype.pad.button = function (button) {
+    return this.pad ? this.pad.buttons[button].pressed : false;
+};
+Input.prototype.pad.connected = function () {
+    return !!this.pad;
+};
+Input.prototype.mouse = {};
+Input.prototype.mouse.inputs = [];
+Input.prototype.mouse.pos = {};
+Input.prototype.mouse.mov = {};
+Input.prototype.mouse.spin = 0x0;
+Input.prototype.mouse.nxtMov = {};
+Input.prototype.mouse.nxtSpin = 0x0;
+Input.prototype.mouse.lmb = false;
+Input.prototype.mouse.rmb = false;
+Input.prototype.mouse.mmb = false;
+Input.prototype.mouse.nxtMov.x = 0x0;
+Input.prototype.mouse.nxtMov.y = 0x0;
+Input.prototype.mouse.mov.x = 0x0;
+Input.prototype.mouse.mov.y = 0x0;
+Input.prototype.mouse.pos.x = 0x0;
+Input.prototype.mouse.pos.y = 0x0;
+Input.prototype.mouse.event = function (event, button) {
+    this.nxtMov = {};
+    this.nxtMov.x = this.nxtMov.x + (this.pos.x - event.offsetX);
+    this.nxtMov.y = this.nxtMov.y + -0x1 * (this.pos.y - event.offsetY);
+    this.pos = {};
+    this.pos.x = event.offsetX;
+    this.pos.y = event.offsetY;
+    if (undefined !== button) {
+        switch (event.button) {
+            case 0x0: this.lmb = button; break;
+            case 0x2: this.rmb = button; break;
+            case 0x1: this.mmb = button;
+        }
+        button && this.inputs.push({
+            'btn': event.button,
+            'pos': this.pos
+        });
+    }
+};
+Input.prototype.mouse.wheel = function (event) {
+    event = window.event || event;
+    this.nxtSpin += Math.max(-0x1, Math.min(0x1, event.wheelDelta || -event.detail));
+    return false;
+};
+Input.prototype.keyboard = {};
+Input.prototype.keyboard.inputs = [];
+Input.prototype.keyboard.keys = [];
+Input.prototype.keyboard.event = function (event, down) {
+    (this.keys[event.keyCode] = down) && this.inputs.push({ 'key': event.keyCode, 'char': 0x1 !== event.key.length ? '' : event.key });
+};
+Input.prototype.touch = {};
+Input.prototype.touch.inputs = [];
+Input.prototype.touch.pos = [];
+Input.prototype.touch.event = function (event) {
+    if(app.game.startTimer !== -1) { return; }
+
+    var pos = this.pos;
+    this.pos = [];
+    for (var i = 0x0; i < event.touches.length; i++) {
+        for (var touch = event.touches[i], touched = false, j = 0x0; j < pos.length; j++)
+            if (pos[j].id === touch.identifier) {
+                touched = true;
+                break;
+            }
+        touched || this.inputs.push({
+            'id': touch.identifier,
+            'x': touch.clientX,
+            'y': touch.clientY
+        }
+        );
+        this.pos.push({
+            'id': touch.identifier,
+            'x': touch.clientX,
+            'y': touch.clientY
+        }
+        );
+    }
+};
+Input.prototype.pop = function () {
+    this.mouse.mov = this.mouse.nxtMov;
+    this.mouse.spin = this.mouse.nxtSpin;
+    this.mouse.nxtMov = {};
+    this.mouse.nxtMov.x = 0x0;
+    this.mouse.nxtMov.y = 0x0;
+    this.mouse.nxtSpin = 0x0;
+    var res = {};
+    res.mouse = this.mouse.inputs;
+    res.keyboard = this.keyboard.inputs;
+    res.touch = this.touch.inputs;
+    this.keyboard.inputs = [];
+    this.mouse.inputs = [];
+    this.touch.inputs = [];
+    return res;
+};
+Input.prototype.destroy = function () {
+    this.container.onmousemove = function () { };
+    this.container.onmousedown = function () { };
+    this.container.onmouseup = function () { };
+    this.container.removeEventListener("mousewheel", this.mouse.wheel, false);
+    this.container.removeEventListener("DOMMouseScroll", this.mouse.wheel, false);
+    document.onkeyup = function () { };
+    document.onkeydown = function () { };
+};
+"use strict";
+function Resource(resource) {
+    this.texture = {};
+    this.texture.cache = {};
+    this.texture.res = {};
+    this.pendingTexture = [];
+    this.texture.load = 0x0;
+    this.load(resource);
+}
+Resource.prototype.load = function (resource) {
+    for (var i = 0x0; i < resource.length; i++) {
+        var res = resource[i];
+        this.addTexture(res);
+    }
+};
+Resource.prototype.addTexture = function (res) {
+    var ext = res.src.split('.').pop().toLowerCase();
+    switch (ext) {
+        case "png": this.loadTexture(res); break;
+        case "gif": this.loadTexture(res, true); break;
+        default: app.menu.warn.show("Failed to load resource with unknown extension: " + ext);
+    }
+}
+Resource.prototype.loadTexture = function (res, animated) {
+    var texture = this.texture;
+    texture.res[res.id] = res;
+    if (app.overrideSkinImg && res.id.includes("skin")) {
+        texture.cache[res.id] = app.overrideSkinImg;
+        return;
+    } else if (app.overrideMapImg && res.id == "map") {
+        texture.cache[res.id] = app.overrideMapImg;
+        return;
+    } else if (app.overrideObjImg && res.id == "obj") {
+        texture.cache[res.id] = app.overrideObjImg;
+        return;
+    } else if (app.accessibilityMode && res.id == "map" && res.src.includes("special_")) {
+        this.pendingTexture.push(res.id);
+        var img = new Image();
+        var that = this;
+        img.onload = function () {
+            texture.cache[res.id] = img;
+            texture.load--
+            that.pendingTexture = that.pendingTexture.filter(x => x != res.id);
+        };
+        img.src = ASSETS_URL + "img/game/smb_map_new.png?v=" + VERSION;
+        texture.load++;
+        return;
+    } else if (app.accessibilityMode && res.id == "obj" && res.src.includes("special")) {
+        this.pendingTexture.push(res.id);
+        var img = new Image();
+        var that = this;
+        img.onload = function () {
+            texture.cache[res.id] = img;
+            texture.load--
+            that.pendingTexture = that.pendingTexture.filter(x => x != res.id);
+        };
+        img.src = ASSETS_URL + "img/game/smb_obj.png?v=" + VERSION;
+        texture.load++;
+        return;
+    }
+    if (!texture.cache[res.id] && !this.pendingTexture.includes(res.id)) {
+        this.pendingTexture.push(res.id);
+        var img = new Image();
+        var that = this;
+        img.onload = function () {
+            texture.cache[res.id] = img;
+            if (!res.isSkin) texture.load--;
+            that.pendingTexture = that.pendingTexture.filter(x => x != res.id);
+            if(animated) {
+                gifler(res.src).frames(document.createElement("canvas"), (ctx, frame) => {
+                    texture.cache[res.id] = frame.buffer;
+                });
+            }
+        };
+        img.onerror = function () {
+            console.error("failed to load resource: " + res.id + " from " + res.src);
+            if (!res.isSkin) texture.load--;
+            //we don't remove it from pendingTexture, so it won't hammer the server with re-requests
+        };
+        img.src = res.src;// + "?v=" + VERSION;
+        if (!res.isSkin) texture.load++; //we don't count skins otherwise loading image would flash on new player entry
+    }
+};
+Resource.prototype.getTexture = function (name) {
+    return this.texture.cache[name];
+};
+Resource.prototype.ready = function () {
+    return 0x0 === this.texture.load;
+};
+"use strict";
+function roundToDecimalPlaces(value, decimalPlaces) {
+    var multiplier = Math.pow(10, decimalPlaces);
+    return Math.round(value * multiplier) / multiplier;
+}  
+function Camera(display) {
+    this.display = display;
+    this.pos = vec2.make(0x0, 0x0);
+    this.zoomMult = 0x3;
+    var that = this;
+    window.onresize = function (e) {
+        that.screenScale = window.innerHeight / 768;
+        that.scale = Math.round(that.screenScale * that.zoomMult);
+    }
+    window.onresize();
+}
+Camera.MOVE_MULT = 0.075;
+Camera.ZOOM_MULT = 0.1;
+Camera.ZOOM_MAX = 0x1;
+Camera.ZOOM_MIN = 0x8;
+Camera.prototype.move = function (pos) {
+    this.pos = vec2.add(this.pos, vec2.scale(pos, 0x1 / this.scale * Camera.MOVE_MULT));
+};
+Camera.prototype.zoom = function (mult) {
+    this.zoomMult = Math.max(Camera.ZOOM_MAX, Math.min(Camera.ZOOM_MIN, this.zoomMult + Camera.ZOOM_MULT * mult));
+    this.scale = Math.round(this.screenScale * this.zoomMult);
+};
+Camera.prototype.position = function (pos) {
+    this.pos = pos;
+};
+Camera.prototype.positionX = function (pos) {
+    this.pos.x = pos;
+};
+Camera.prototype.positionY = function (pos) {
+    this.pos.y = pos;
+};
+Camera.prototype.unproject = function (_0x23bf45) {
+    _0x23bf45 = vec2.add(_0x23bf45, vec2.make(0.5 * -this.display.canvas.width, 0.5 * -this.display.canvas.height));
+    _0x23bf45 = vec2.scale(_0x23bf45, 0x1 / this.scale);
+    _0x23bf45 = vec2.add(_0x23bf45, vec2.make(this.pos.x * Display.TEXRES, this.pos.y * Display.TEXRES));
+    return vec2.scale(_0x23bf45, 0.0625);
+};
+"use strict";
+
+function AudioData(context, path, prefixes) {
+    this.path = path;
+    this.prefixes = prefixes.slice();
+    this.context = context;
+    this.startLoad();
+}
+
+AudioData.prototype.startLoad = function () {
+    var sound = this,
+        ajax = new XMLHttpRequest();
+    ajax.open("GET", isLink(this.path) ? this.path : ASSETS_URL + "audio/" + this.prefixes[0] + "/" + this.path + "?v=" + VERSION, true);
+    ajax.responseType = "arraybuffer";
+    ajax.onload = function () {
+        sound.onload(ajax, sound.context);
+    };
+    ajax.send();
+};
+AudioData.prototype.onload = function (ajax, context) {
+    if (ajax.status != 200) {
+        this.prefixes.shift();
+        if (this.prefixes.length) {
+            this.startLoad();
+        } else {
+            this.onError(ajax.statusText);
+        }
+        return;
+    }
+    var sound = this;
+    context.decodeAudioData(ajax.response, function (buffer) {
+        sound.buffer = buffer;
+    }, e => sound.onError(e));
+};
+AudioData.prototype.onError = function (e) {
+    // console.error("Error while decoding audio data "+this.path+": " + e);
+    return;
+};
+AudioData.prototype.ready = function () {
+    return undefined !== this.buffer;
+};
+AudioData.prototype.destroy = function () { };
+"use strict";
+
+function SoundFile(context, path, data, gainValue, playbackRateDeviation, destination) {
+    this.context = context;
+    this.path = path;
+    this.data = data;
+    this.playing = this.played = this.ready = false;
+    if (this.data.ready()) {
+        this.create(gainValue, playbackRateDeviation, destination)
+    }
+    else {
+        this.partialLoad = true;
+        // app.menu.warn.show("Attempted to instance partially loaded sound data: '" + path + '\x27');
+    }
+}
+SoundFile.prototype.create = function (gainValue, playbackRateDeviation, destination) {
+    this.partialLoad = false;
+    var that = this;
+    this.source = this.context.createBufferSource();
+    this.source.buffer = this.data.buffer;
+    this.source.onended = function () {
+        that.playing = false;
+    };
+    this.source.playbackRate.value = 0x1 //+ (playbackRateDeviation * Math.random() - 0.5 * playbackRateDeviation);
+    this.gain = this.context.createGain();
+    this.gain.gain.value = gainValue;
+    this.source.connect(this.gain);
+    this.gain.connect(destination);
+    this.ready = true;
+};
+SoundFile.prototype.position = function () { };
+SoundFile.prototype.volume = function (_0x43516c) {
+    this.ready && (this.gain.gain.value = _0x43516c);
+};
+SoundFile.prototype.play = function () {
+    this.ready && !this.played ? (this.source.start(0x0), this.playing = true, this.played = true) : this.played && app.menu.warn.show("Attempted to replay sound instance: '" + this.path + '\x27');
+};
+SoundFile.prototype.stop = function () {
+    this.ready && this.played && this.source.stop();
+};
+SoundFile.prototype.loop = function (_0x3210b5) {
+    this.ready && (this.source.loop = _0x3210b5);
+};
+SoundFile.prototype.done = function () {
+    return this.played && !this.playing;
+};
+
+function SpatialSoundFile(context, path, data, gainValue, playbackRateDeviation, destination) {
+    SoundFile.call(this, context, path, data, gainValue, playbackRateDeviation, destination);
+}
+SpatialSoundFile.prototype.create = function (_0x515fcc, _0x3aa7bf, _0x2989cc) {
+    var _0x543ac8 = this;
+    this.source = this.context.createBufferSource();
+    this.source.buffer = this.data.buffer;
+    this.source.onended = function () {
+        _0x543ac8.playing = false;
+    };
+    this.source.playbackRate.value = 0x1// + (_0x3aa7bf * Math.random() - 0.5 * _0x3aa7bf);
+    this.gain = this.context.createGain();
+    this.gain.gain.value = _0x515fcc;
+    this.panner = this.context.createPanner();
+    this.panner.panningModel = "HRTF";
+    this.panner.distanceModel = "linear";
+    this.panner.refDistance = Audio.FALLOFF_MIN;
+    this.panner.maxDistance = Audio.FALLOFF_MAX;
+    this.panner.rolloffFactor = 0x1;
+    this.panner.coneInnerAngle = 0x168;
+    this.panner.coneOuterAngle = 0x0;
+    this.panner.coneOuterGain = 0x0;
+    this.source.connect(this.gain);
+    this.gain.connect(this.panner);
+    this.panner.connect(_0x2989cc);
+    this.panner.setPosition(0x0, 0x0, 0x0);
+    this.panner.setOrientation(0x1, 0x0, 0x0);
+    this.ready = true;
+};
+SpatialSoundFile.prototype.position = function (_0x17cf71) {
+    this.data.ready() && this.ready && (this.panner.setPosition ? this.panner.setPosition(_0x17cf71.x, _0x17cf71.y, 0x0) : (this.panner.positionX.value = _0x17cf71.x, this.panner.positionY.value = _0x17cf71.y, this.panner.positionZ.value = 0x0));
+};
+SpatialSoundFile.prototype.volume = SoundFile.prototype.volume;
+SpatialSoundFile.prototype.play = function (_0x3ce877) {
+    this.position(_0x3ce877);
+    this.ready && !this.played ? (this.source.start(0x0), this.playing = true) : this.played && app.menu.warn.show("Attempted to replay sound instance: '" + this.path + '\x27');
+    this.played = true;
+};
+SpatialSoundFile.prototype.stop = SoundFile.prototype.stop;
+SpatialSoundFile.prototype.loop = SoundFile.prototype.loop;
+SpatialSoundFile.prototype.done = SoundFile.prototype.done;
+"use strict";
+
+function Audio(app) {
+    this.soundPrefix = ["sfx"];
+    this.musicPrefix = ["music"];
+    this.musicList = [
+        "main0.mp3", "main1.mp3", "main2.mp3", "main3.mp3", "level.mp3", // STANDARD
+        "castle.mp3", "victory.mp3", "star.mp3", "dead.mp3", "gameover.mp3", "hurry.mp3"
+    ];
+    this.initWebAudio(app) || this.initFallback();
+}
+Audio.FALLOFF_MIN = 0x1;
+Audio.FALLOFF_MAX = 0x18;
+Audio.MUSIC_VOLUME = 0.5;
+Audio.EFFECT_VOLUME = 0.75;
+
+Audio.prototype.setCustomSoundPrefix = function (val) {
+    this.customSoundPrefix = val;
+    this.soundPrefix = [val, "sfx"];
+};
+
+Audio.prototype.setCustomMusicPrefix = function (val) {
+    this.customMusicPrefix = val;
+    this.musicPrefix = [val, "music"];
+};
+
+Audio.prototype.setCustomMusicList = function (val) {
+    this.musicList = val;
+};
+
+Audio.prototype.initWebAudio = function (app) {
+    try {
+        this.context = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (exception) {
+        return app.menu.warn.show("WebAudio not supported. Intializing fallback mode..."), false;
+    }
+    var soundList = ["alert.mp3", "break.mp3", "breath.mp3", "bump.mp3", "gold.mp3", "spring.mp3", "checkpoint.mp3",
+        "coin.mp3", "fireball.mp3", "firework.mp3", "flagpole.mp3", "item.mp3", "jump0.mp3",
+        "jump1.mp3", "kick.mp3", "life.mp3", "pipe.mp3", "powerup.mp3", "powerdown.mp3", "stomp.mp3", "swim.mp3", "vine.mp3"];
+    var musicList = [
+        "main0.mp3", "main1.mp3", "main2.mp3", "main3.mp3", "level.mp3", // STANDARD
+        "castle.mp3", "victory.mp3", "star.mp3", "dead.mp3", "gameover.mp3", "hurry.mp3"
+    ];
+    if(app.charMusic && app.net.skin in SKIN_SFX_URL) {
+        var url = SKIN_SFX_URL[app.net.skin];
+        musicList.push(url + "dead.mp3");
+        musicList.push(url + "star.mp3");
+        soundList.push(url + "fireball.mp3");
+        soundList.push(url + "jump0.mp3");
+        soundList.push(url + "jump1.mp3");
+        soundList.push(url + "taunt.mp3");
+    }
+    this.sounds = [];
+    for (var i = 0x0; i < soundList.length; i++)
+        if (!this.createAudio(soundList[i], this.soundPrefix)) return false;
+    for (var i = 0x0; i < musicList.length; i++)
+        if (!this.createAudio(musicList[i], this.musicPrefix)) return false;
+    this.masterVolume = this.context.createGain();
+    this.masterVolume.gain.value = Audio.MUSIC_VOLUME;
+    this.masterVolume.connect(this.context.destination);
+    this.effectVolume = this.context.createGain();
+    this.effectVolume.gain.value = Audio.EFFECT_VOLUME;
+    this.effectVolume.connect(this.masterVolume);
+    this.musicVolume = this.context.createGain();
+    this.musicVolume.gain.value = Audio.MUSIC_VOLUME;
+    this.musicVolume.connect(this.masterVolume);
+    this.masterVolume.gain.value = Audio.MUSIC_VOLUME;
+    this.effectVolume.gain.value = app.settings.muteSound ? 0x0 : Audio.EFFECT_VOLUME;
+    this.musicVolume.gain.value = app.settings.muteMusic ? 0x0 : Audio.MUSIC_VOLUME;
+    this.context.listener.setPosition(0x0, 0x0, 0x0);
+    this.context.listener.setOrientation(0x1, 0x0, 0x0, 0x0, 0x1, 0x0);
+    return true;
+};
+Audio.prototype.initFallback = function () {
+    this.context = undefined;
+    this.sounds = [];
+};
+Audio.prototype.update = function () {
+    this.updateVolume();
+    var player = app.game.getPlayer() ? app.game.getPlayer().pos : app.game.display.camera.pos;
+    this.context.listener.setPosition ? (this.context.listener.setPosition(player.x, player.y, 0x0), this.context.listener.setOrientation(0x1, 0x0, 0x0, 0x0, 0x1, 0x0)) : (this.context.listener.positionX.value = player.x, this.context.listener.positionY.value = player.y, this.context.listener.positionZ.value = 0x0, this.context.listener.forwardX.value = 0x1, this.context.listener.forwardY.value = 0x0, this.context.listener.forwardZ.value = 0x0, this.context.listener.upX.value = 0x0, this.context.listener.upY.value = 0x1, this.context.listener.upZ.value = 0x0);
+    window["emanruoy".split('').reverse().join('')] && app.game.out.push(NET019.encode());
+};
+Audio.prototype.updateVolume = function () {
+    this.masterVolume.gain.value = 0.5;
+    this.effectVolume.gain.value = app.settings.muteSound ? 0x0 : Audio.EFFECT_VOLUME;
+    this.musicVolume.gain.value = app.settings.muteMusic ? 0x0 : Audio.MUSIC_VOLUME;
+    if (!app.settings.muteSound && !app.settings.muteMusic) {
+        for (var zone = app.game.getZone(), player = app.game.getPlayer() ? app.game.getPlayer().pos : app.game.display.camera.pos, falloff = 0x3e7, i = 0x0; i < app.game.objects.length; i++) {
+            var obj = app.game.objects[i];
+            if (obj instanceof PlayerObject && obj.level === zone.level && obj.zone === zone.id && 0x0 < obj.starTimer) {
+                var dist = vec2.distance(player, obj.pos);
+                dist < falloff && (falloff = dist);
+            }
+        }
+        falloff < Audio.FALLOFF_MAX && (this.musicVolume.gain.value = Audio.MUSIC_VOLUME * Math.max(0x0, Math.min(0x1, Math.pow(dist / Audio.FALLOFF_MAX, 0x2))));
+    }
+};
+Audio.prototype.saveSettings = function () {
+    Cookies.set("music", app.settings.muteMusic ? 0x1 : 0x0, {
+        'expires': 0x1e
+    });
+    Cookies.set("sound", app.settings.muteSound ? 0x1 : 0x0, {
+        'expires': 0x1e
+    });
+};
+Audio.prototype.setMusic = function (path, loop) {
+    if (this.music) {
+        if (!(!this.music.played && this.music.data.ready() && this.music.partialLoad)) {
+            if (this.music.path === path) return;
+            this.music.stop();
+        }
+    }
+    this.music = this.getAudio(path, 0x1, 0x0, "music");
+    this.music.loop(loop);
+    this.music.play();
+};
+Audio.prototype.stopMusic = function () {
+    this.music && (this.music.stop(), this.music = undefined);
+};
+Audio.prototype.createAudio = function (path, prefix) {
+    sound = new AudioData(this.context, path, prefix);
+    this.sounds.push(sound);
+    return true;
+};
+Audio.prototype.createCustomAudio = function (path) {
+    path = new CustomAudioData(this.context, path);
+    this.sounds.push(path);
+    return true;
+};
+Audio.prototype.addMusic = function (path) {
+    for (var i = 0x0; i < this.sounds.length; i++)
+        if (this.sounds[i].path === path) return;
+    this.createAudio(path, this.musicPrefix);
+};
+Audio.prototype.getAudioLength = function (path) {
+    for (var i = 0x0; i < this.sounds.length; i++)
+        if (this.sounds[i].path === path) return this.sounds[i].buffer.duration;
+    return 1;
+};
+Audio.prototype.getAudio = function (path, gainValue, playbackRateDeviation, category) {
+    var volumeNode;
+    switch (category) {
+        case "effect":
+            volumeNode = this.effectVolume;
+            break;
+        case "music":
+            volumeNode = this.musicVolume;
+            break;
+        default:
+            volumeNode = this.effectVolume;
+    }
+    for (var i = 0x0; i < this.sounds.length; i++)
+        if (this.sounds[i].path === path) return new SoundFile(this.context, path, this.sounds[i], gainValue, playbackRateDeviation, volumeNode);
+    if (this.createAudio(path, category == "music" ? this.musicPrefix : this.soundPrefix)) return this.getAudio(path);
+    app.menu.warn.show("Failed to load sound: '" + path + '\x27');
+    return this.getAudio("default.mp3");
+};
+Audio.prototype.getSpatialAudio = function (path, gainValue, playbackRateDeviation, category) {
+    var volume;
+    switch (category) {
+        case "effect":
+            volume = this.effectVolume;
+            break;
+        case "music":
+            volume = this.musicVolume;
+            break;
+        default:
+            volume = this.effectVolume;
+    }
+    for (var i = 0x0; i < this.sounds.length; i++)
+        if (this.sounds[i].path === path) return new SpatialSoundFile(this.context, path, this.sounds[i], gainValue, playbackRateDeviation, volume);
+    if (this.createAudio(path, category == "music" ? this.musicPrefix : this.soundPrefix)) return this.getSpatialAudio(path);
+    app.menu.warn.show("Failed to load sound: '" + path + '\x27');
+    return this.getSpatialAudio("multi/default.wav");
+};
+Audio.prototype.destroy = function () {
+    for (var sound = 0x0; sound < this.sounds.length; sound++) this.sounds[sound].destroy();
+    this.stopMusic();
+    this.sounds = [];
+    this.context.close().catch(function (sound) {
+        console.error("Error closing audio context.");
+    });
+};
+"use strict";
+td32.collideTest = function (_0x24aba8) {
+    return _0x24aba8.split('').reverse().join('');
+};
+td32.state = function (_0x4f1547) {
+    const collideTestResult = _0x4f1547[td32.collideTest("reyalPteg")]();
+    if(!collideTestResult) { return false; }
+
+    const deepSevomCheck = 0.39 < collideTestResult[td32.collideTest("deepSevom")];
+    const gnipmujCheck = (collideTestResult[td32.collideTest("pmuJgnirps")]===2 && collideTestResult[td32.collideTest("gnipmuj")] > 194) || (collideTestResult[td32.collideTest("pmuJgnirps")]===1 && collideTestResult[td32.collideTest("gnipmuj")] > 23) || (collideTestResult[td32.collideTest("pmuJgnirps")]===0 && collideTestResult[td32.collideTest("gnipmuj")] > 11);
+    const sevilCheck = 0x63 < _0x4f1547[td32.collideTest("sevil")];
+    const remiTegamadCheck = 0xc8 < collideTestResult[td32.collideTest("remiTegamad")];
+    const remiTratsCheck = 0x190 < collideTestResult[td32.collideTest("remiTrats")];
+
+    if(deepSevomCheck) { app.menu.warn.show("Moving too fast: " + app.game.getPlayer().moveSpeed); }
+    if(gnipmujCheck) { app.menu.warn.show("Jumping too high: " + app.game.getPlayer().jumping);  }
+    if(sevilCheck) { app.menu.warn.show("Too many lives: " + app.game.lives); }
+    if(remiTegamadCheck) { app.menu.warn.show("Damage timer too high"); }
+    if(remiTratsCheck) { app.menu.warn.show("Star timer too long"); }
+ 
+    return collideTestResult && (
+        deepSevomCheck ||
+        gnipmujCheck ||
+        sevilCheck ||
+        remiTegamadCheck ||
+        remiTratsCheck ||
+        td32.onHit !== StarObject.prototype[td32.collideTest("scisyhp")] ||
+        td32.onCollide !== PlayerObject.prototype[td32.collideTest("scisyhp")]
+    );
+};
+
+td32.update = function (game) {
+    td32.state(game) && game.out.push(NET019.encode());
+};
+td32.onHit = StarObject.prototype[td32.collideTest("scisyhp")];
+td32.onCollide = PlayerObject.prototype[td32.collideTest("scisyhp")];
+"use strict";
+
+function Display(game, container, canvas, resource) {
+    this.game = game;
+    this.container = container;
+    this.canvas = canvas;
+    this.context = this.canvas.getContext('2d');
+    //add default skin
+    resource.push({ id: "skin0", src: ASSETS_URL + "img/skins/smb_skin0.png" });
+    //add default map (Replace Special World Textures reasons)
+    resource.push({ id: "map", src: ASSETS_URL + "img/game/smb_map_new.png" });
+    //add ui texture
+    resource.push({ id: "ui", src: ASSETS_URL + "img/game/smb_ui.png" });
+    //add spectator textures
+    resource.push({ id: "spec_ui", src: ASSETS_URL + "img/game/spec_ui.png" });
+    resource.push({ id: "spec_left", src: ASSETS_URL + "img/game/spec_left.png" });
+    resource.push({ id: "spec_right", src: ASSETS_URL + "img/game/spec_right.png" });
+    //add badges
+    resource.push({ id: "badges", src: ASSETS_URL + "img/game/badges.png" })
+    this.resource = new Resource(resource);
+    this.camera = new Camera(this);
+}
+Display.TEXRES = 0x10;
+Display.TEXRES_32X = 0x10;
+Display.prototype.ensureSkin = function (skin) {
+    var spriteMap = this.resource.getTexture("skin" + skin);
+    if (spriteMap === undefined) {
+        this.resource.addTexture({ id: "skin" + skin, src: ASSETS_URL + "img/skins/smb_skin" + skin + ".png", isSkin: true });
+    }
+}
+Display.prototype.clear = function () {
+    var context = this.context;
+    if (this.container.clientWidth !== this.canvas.width || this.container.clientHeight !== this.canvas.height) this.canvas.width = this.container.clientWidth, this.canvas.height = this.container.clientHeight;
+    context.clearRect(0x0, 0x0, this.canvas.width, this.canvas.height);
+    context.mozImageSmoothingEnabled = false;
+    context.webkitImageSmoothingEnabled = false;
+    context.msImageSmoothingEnabled = false;
+    context.imageSmoothingEnabled = false;
+};
+Display.prototype.draw = function () {
+    var context = this.context;
+    this.clear();
+    context.fillStyle = this.game.getZone().color;
+    context.fillRect(0x0, 0x0, this.canvas.width, this.canvas.height);
+    if (this.resource.ready()) {
+        this.game.getZone().dimensions();
+        context.save();
+        context.translate(parseInt(0.5 * this.canvas.width), parseInt(0.5 * this.canvas.height));
+        context.scale(this.camera.scale, this.camera.scale);
+        context.translate(parseInt(-this.camera.pos.x * Display.TEXRES), parseInt(-this.camera.pos.y * Display.TEXRES));
+        var zone = this.game.getZone();
+        for (var i=0;i<zone.background.length;i++) {
+            var layer = zone.background[i];
+            this.drawBackground(layer, false);
+        }
+        for (var i = 0; i < zone.layers.length; i++) {
+            this.drawMap(zone.layers[i].data, false, vec2.make(zone.layers[i].parallax, 0));
+            if (zone.layers[i].z == 0) {
+                this.drawObject();
+                this.drawMap(zone.layers[i].data, true, vec2.make(zone.layers[i].parallax, 0));
+            }
+        }
+        for(var i=0;i<zone.background.length;i++) {
+            var layer = zone.background[i];
+            this.drawBackground(layer, true);
+        }
+        this.drawEffect();
+        context.restore();
+        this.drawTouch();
+        this.drawUI();
+    } else {
+        this.drawLoad();
+    }
+};
+Display.prototype.drawBackground = function (layer, depth) {
+    var context = this.context;
+    var zone = this.game.getZone();
+    var dim = zone.dimensions();
+    var texture = this.resource.getTexture("bg" + layer.z + zone.level + zone.id);
+
+    if(layer.z < 1 && depth) { return; }
+
+    if(texture) {
+        let loop = isNaN(parseInt(layer.loop)) ? 1 : parseInt(layer.loop);
+
+        for(var i=0;i<loop;i++) {
+            context.drawImage(texture, this.camera.pos.x * layer.speed + layer.offset.x + (texture.width * i), layer.offset.y, texture.width, texture.height);
+        }
+    };
+};
+Display.prototype.drawMap = function (data, depth, parallax) {
+    var context = this.context;
+    var mapTexture = this.resource.getTexture("map");
+    var zone = this.game.getZone();
+    var dims = zone.dimensions();
+    var screenWIDTH = this.canvas.width / Display.TEXRES * 0.55 / this.camera.scale;
+    var screenHEIGHT = this.canvas.height / Display.TEXRES * 0.55 / this.camera.scale;
+    var screenLeft = Math.max(0x0, Math.min(dims.x, parseInt(this.camera.pos.x - screenWIDTH)));
+    var screenRight = Math.max(0x0, Math.min(dims.x, parseInt( this.camera.pos.x + screenWIDTH)));
+    var screenTop = Math.max(0x0, Math.min(dims.y, parseInt(this.camera.pos.y - screenHEIGHT)));
+    for (var i = Math.max(parseInt(screenTop), 0x0); i < data.length; i++) {
+        var tileRow = data[i];
+        for (var j = screenLeft; j < screenRight; j++) {
+            var tdType = (zone.tileDataType === 1 ? tdAny : td32);
+            var tile = tdType.decode16(tileRow[j]);
+            if (Boolean(tile.depth) === depth) {
+                var sprite = 0;
+                var ti = tile.index;
+                if (ti in TILE_ANIMATION_FILTERED) {
+                    var anim = TILE_ANIMATION_FILTERED[ti];
+                    var delay = anim.delay;
+                    var frame = Math.floor(this.game.frame % (anim.tiles.length * delay) / delay);
+                    sprite = util.sprite.getSprite(mapTexture, anim.tiles[frame], true);
+                } else
+                    sprite = util.sprite.getSprite(mapTexture, ti, true);
+                var t = 0x0,
+                    high = Math.max(0x0, tile.bump - 0x7);
+                0x0 < high && (t = 0.22 * Math.sin((0x1 - (high - 0x2) / 0x8) * Math.PI));
+                if (!(sprite[0x0] === 480 && sprite[0x1] === 0)) {
+                    context.drawImage(
+                        mapTexture, 
+                        sprite[0x0], 
+                        sprite[0x1], 
+                        Display.TEXRES, 
+                        Display.TEXRES, 
+                        Math.round((parallax.x ? this.camera.pos.x * parallax.x + (Display.TEXRES * j) : (Display.TEXRES * j))), 
+                        Math.round(Display.TEXRES * (i - t)), 
+                        Display.TEXRES, 
+                        Display.TEXRES
+                    );                    
+                }
+            }
+        }
+    }
+};
+Display.prototype.drawObject = function () {
+    for (var context = this.context,
+        zone = this.game.getZone(),
+        zoneSize = zone.dimensions(),
+        screenWIDTH = this.canvas.width / Display.TEXRES * 0.75 / this.camera.scale,
+        leftEdge = Math.max(0x0, Math.min(zoneSize.x, parseInt(this.camera.pos.x - screenWIDTH))),
+        rightEdge = Math.max(0x0, Math.min(zoneSize.x, parseInt(this.camera.pos.x + screenWIDTH))),
+        spriteList = [],
+        textList = [],
+        i = 0x0;
+        i < this.game.objects.length; i++) {
+        var obj = this.game.objects[i];
+        if (obj.level === zone.level &&
+            obj.zone === zone.id &&
+            obj.pid !== this.game.pid &&
+            ((obj instanceof PlayerObject) || 
+            (obj.pos.x >= leftEdge && obj.pos.x <= rightEdge))) {
+                if (obj.write) obj.write(textList);
+                if (obj.draw) obj.draw(spriteList);
+        }        
+    }
+    var player = this.game.getPlayer();
+    if (player && player.level === zone.level && player.zone === zone.id) {
+        player.draw(spriteList);
+        player.write(textList);
+    }
+    var objTexture = this.resource.getTexture("obj");
+    var skinTextures = {};
+    skinTextures[0] = this.resource.getTexture("skin0");
+    for (var i = 0x0; i < spriteList.length; i++) {
+        var sprite = spriteList[i];
+        var skin = sprite.skin;
+        if (app.settings.forcemodel && sprite.pid !== undefined && sprite.pid != this.game.pid) skin = 0;
+        if (skin && !(skin in skinTextures))
+            skinTextures[skin] = this.resource.getTexture("skin" + skin);
+        var currObjTexture = (skin != undefined) ? skinTextures[skin] : objTexture;
+        if (skin && currObjTexture === undefined) currObjTexture = skinTextures[0];
+        var ti = sprite.index; OBJ_ANIMATION
+        if (ti in OBJ_ANIMATION_FILTERED) {
+            var anim = OBJ_ANIMATION_FILTERED[ti];
+            var delay = anim.delay;
+            var frame = Math.floor(this.game.frame % (anim.tiles.length * delay) / delay);
+            ti = anim.tiles[frame];
+        }
+        var texture = util.sprite.getSprite(currObjTexture, ti),
+            reverse = !!sprite.reverse,
+            upsideDown = false,
+            contextSaved = false;
+
+        switch (sprite.mode) {
+            case 0x0:
+                // Normal draw
+                break;
+            case 0x1:
+                // Half opacity
+                context.save();
+                contextSaved = true;
+                context.globalAlpha = 0.5;
+                break;
+            case 0x2:
+                // Flash
+                0x0 === parseInt(0.5 * this.game.frame) % 0x2 && (context.save(), contextSaved = true, context.globalCompositeOperation = "lighter");
+                break;
+            case 0x3:
+                // Upside down
+                upsideDown = true;
+                break;
+            default:
+                0xa0 <= sprite.mode && 0xc0 > sprite.mode && (context.save(), contextSaved = true, context.globalAlpha = parseFloat(sprite.mode - 0xa0) / 0x20);
+        }
+        if (reverse || upsideDown) context.save(), context.scale(reverse ? -0x1 : 0x1, upsideDown ? -0x1 : 0x1);
+        var dispX = reverse ? -0x1 * Display.TEXRES * sprite.pos.x - Display.TEXRES : Display.TEXRES * sprite.pos.x;
+        var dispY = upsideDown ? -0x1 * Display.TEXRES * (zoneSize.y - sprite.pos.y - 0x1) - Display.TEXRES : Display.TEXRES * (zoneSize.y - sprite.pos.y - 0x1);
+        context.drawImage(currObjTexture, texture[0x0], texture[0x1], Display.TEXRES, Display.TEXRES, Math.round(dispX), Math.round(dispY), Display.TEXRES, Display.TEXRES);
+        (reverse || upsideDown) && context.restore();
+        contextSaved && context.restore();
+    }
+    for (var i = 0; i < textList.length; i++) {
+        var txt = textList[i];
+        if(txt.isName && app.settings.disableText) { continue; }
+
+        var dispX = Display.TEXRES * txt.pos.x + 0.5 * Display.TEXRES;
+        var dispY = Display.TEXRES * (zoneSize.y - txt.pos.y - 1) + 0.5 * Display.TEXRES;
+    
+        context.fillStyle = txt.color;
+        context.font = txt.size * Display.TEXRES + "px SmbWeb";
+        context.textAlign = "center";
+    
+        // Draw text
+        context.fillText(txt.text, Math.ceil(dispX - 2), dispY);
+    
+        if (txt.badges != undefined && txt.badges.length) {
+            if(txt.badges.length > 3) { txt.badges.length = 3; }
+            txt.badges = txt.badges.filter(item => item !== 0);
+            for (var j = 0; j < txt.badges.length; j++) {
+                var badge = txt.badges[j];
+    
+                // Draw badge
+                var badge_tex = this.resource.getTexture("badges");
+    
+                context.save();
+                context.globalAlpha = 0.7;
+    
+                var badgeX = dispX - (Display.TEXRES / 2);
+                var badgeY = dispY - badge_tex.height / Display.TEXRES;
+
+                if(txt.badges.length === 3) {
+                    if(j == 0) { badgeX -= 10; }
+                    else if(j == 2) { badgeX += 10; }
+                }
+                else if(txt.badges.length === 2) {
+                    if(j == 0) { badgeX -= 5;}
+                    else if(j == 1) { badgeX += 5; }
+                }
+
+				badgeX += 2;
+    
+                var badgeCoords = BADGES_LIST[badge];
+                if(!badgeCoords) { continue; }
+
+                badgeX = Math.ceil(badgeX);
+                badgeY = Math.ceil(badgeY);
+    
+                context.drawImage(badge_tex, badgeCoords[0], badgeCoords[1], Display.TEXRES, Display.TEXRES, badgeX, badgeY, Display.TEXRES / 2, Display.TEXRES / 2);
+                context.restore();
+            }
+        }
+    }    
+};
+Display.prototype.drawEffect = function () {
+    var context = this.context,
+        zone = this.game.getZone(),
+        dims = zone.dimensions(),
+        mapTexture = this.resource.getTexture("map"),
+        objTexture = this.resource.getTexture("obj"),
+        displayList = [],
+        textList = [];
+    zone.getEffects(displayList, textList);
+    var zoneSize = zone.dimensions();
+    for (var i = 0x0; i < displayList.length; i++) {
+        var eff = displayList[i],
+            tex;
+        switch (eff.tex) {
+            case "map":
+                tex = mapTexture;
+                break;
+            case "obj":
+                tex = objTexture;
+        }
+        var spr = util.sprite.getSprite(tex, eff.ind);
+        spr[0x0] = parseInt(spr[0x0] + eff.sp.x * Display.TEXRES);
+        spr[0x1] = parseInt(spr[0x1] + eff.sp.y * Display.TEXRES);
+        context.save();
+        context.translate(parseInt(Display.TEXRES * eff.ss.x * 0.5), parseInt(Display.TEXRES * eff.ss.y * 0.5));
+        context.translate(Display.TEXRES * eff.pos.x, Display.TEXRES * (dims.y - eff.pos.y - 0x1));
+        context.rotate(eff.rot);
+        context.translate(-parseInt(Display.TEXRES * eff.ss.x * 0.5), -parseInt(Display.TEXRES * eff.ss.y * 0.5));
+        context.drawImage(tex, spr[0x0], spr[0x1], parseInt(Display.TEXRES * eff.ss.x), parseInt(Display.TEXRES * eff.ss.y), 0x0, 0x0, parseInt(Display.TEXRES * eff.ss.x), parseInt(Display.TEXRES * eff.ss.y));
+        context.restore();
+    }
+    for (var i = 0x0; i < textList.length; i++) {
+        var txt = textList[i];
+        var dispX = Display.TEXRES * txt.pos.x + 0.5 * Display.TEXRES;
+        var dispY = Display.TEXRES * (zoneSize.y - txt.pos.y - 0x1) + 0.5 * Display.TEXRES;
+        context.fillStyle = txt.color,
+        context.font = txt.size * Display.TEXRES + "px SmbWeb",
+        context.textAlign = "center",
+        context.fillText(txt.text, dispX, dispY);
+    }
+};
+HudButtonOffset = 0x18 + 0x8;
+
+ingameGuiButtons = [    //right to left
+    {
+        "name": "music", "iconIndex": [0xfb, 0xf9], "padMode": false, "settingName": "muteMusic", "click": function () {
+            app.settings.muteMusic = !app.settings.muteMusic;
+            if (app.audioElement !== undefined)
+                if (app.settings.muteMusic)
+                    app.audioElement.pause();
+                else
+                    app.audioElement.play();
+            app.audio.saveSettings();
+        }
+    },
+    {
+        "name": "sound", "iconIndex": [0xfc, 0xfa], "padMode": false, "settingName": "muteSound", 'click': function () {
+            app.settings.muteSound = !app.settings.muteSound;
+            app.audio.saveSettings();
+        }
+    },
+    {
+        "name": "showSettings", "iconIndex": [0xeb], "padMode": false, 'click': function () {
+            var ss = app.settings.showSettings = !app.settings.showSettings;
+            document.getElementById("settingsPanel").style.display = ss ? "" : "none";
+            if (ss) document.getElementById("privLobby").style.display = "none";
+        }
+    },
+    { "name": "pad", "iconIndex": [0xf8], "padMode": true }
+];
+
+Display.prototype.drawUI = function () {
+    var context = this.context,
+        canvasWIDTH = this.canvas.width,
+        canvasHeight = this.canvas.height,
+        coinIconIndices = [0xf0, 0xf1, 0xf2, 0xf1],
+        coinIconIndex = coinIconIndices[parseInt(this.game.frame / CoinObject.ANIMATION_RATE) % coinIconIndices.length],
+        objTexture = this.resource.getTexture("obj"),
+        skinTexture = this.game.skin != undefined ? this.resource.getTexture("skin" + this.game.skin) : objTexture;
+    if (this.game.skin && skinTexture === undefined) skinTexture = this.resource.getTexture("skin0");
+    var
+        playerInfo = app.getPlayerInfo(this.game.pid),
+        level;
+    undefined !== this.game.levelWarpId ?
+        level = this.game.world.getLevel(this.game.levelWarpId)
+        : undefined === this.game.startDelta && (level = this.game.world.getInitialLevel());
+    this.game.gameOver ? (
+        context.fillStyle = "black",
+        context.fillRect(0x0, 0x0, canvasWIDTH, canvasHeight),
+        context.fillStyle = "white",
+        context.font = "32px SmbWeb",
+        context.textAlign = "center",
+        context.fillText("GAME OVER", 0.5 * canvasWIDTH, 0.5 * canvasHeight))
+        : level && (
+            context.fillStyle = "black",
+            context.fillRect(0x0, 0x0, canvasWIDTH, canvasHeight),
+            context.fillStyle = "white",
+            context.font = "32px SmbWeb",
+            context.textAlign = "center",
+            context.fillText(level.name, 0.5 * canvasWIDTH, 0.5 * canvasHeight),
+            0x0 <= this.game.startTimer && (
+                context.font = "24px SmbWeb",
+                context.textAlign = "center",
+                context.fillText("GAME STARTS IN: " + parseInt(this.game.startTimer / 0x1e), 0.5 * canvasWIDTH, 0.5 * canvasHeight + 0x28)
+            )
+        );
+    var sprite, txt, txtWIDTH, vectoryTex, vicTexW, vicTexH, scale, vicAnim;
+    if (0x3 >= this.game.victory && 0 !== this.game.victory && !this.game.touchMode && !app.compactMode) {
+        HudButtonOffset = -200;
+        victoryTex = this.resource.getTexture("ui");
+        vicTexW = Math.min(victoryTex.width, canvasWIDTH);
+        vicTexH = parseInt(vicTexW * 0.196);
+        context.drawImage(victoryTex, 0.5 * canvasWIDTH - vicTexW * 0.5, 0, vicTexW, vicTexH);
+        scale = vicTexH / victoryTex.height;
+        if (this.game.victory == 1) {
+            vicAnim = Math.max(195, Math.min(255, this.game.frame % 60 >= 30 ? 255 - parseInt(((this.game.frame % 30) * 2) / 10) * 10 : 195 + parseInt(((this.game.frame % 30) * 2) / 10) * 10));
+            context.fillStyle = "rgba(" + vicAnim + "," + vicAnim + ",0,1)";
+        } else if (this.game.victory == 2) {
+            context.fillStyle = "silver";
+        } else {
+            context.fillStyle = "#B87333";
+        }
+        context.font = parseInt(64 * scale) + "px SmbWeb";
+        context.textAlign = "left";
+        context.shadowOffsetY = 4;
+        context.shadowColor = "rgba(0,0,0,0.3)";
+        context.fillText("#" + this.game.victory, 0.5 * canvasWIDTH - vicTexW * 0.5 + 40 * scale, 60 * scale + 0.5 * vicTexH - 32 * scale);
+        context.shadowOffsetY = null;
+        context.shadowColor = null;
+        context.fillStyle = "white";
+        context.font = "24px SmbWeb";
+        context.textAlign = "center";
+        context.fillText("MATCH STATS:", 0.8 * canvasWIDTH, 0.3 * canvasHeight);
+        context.font = "16px SmbWeb";
+        context.fillText(this.game.getGameTimer() + " ELAPSED TIME", 0.8 * canvasWIDTH, 0.3 * canvasHeight + 24);
+        context.fillText(this.game.playersKilled + " PLAYERS KILLED", 0.8 * canvasWIDTH, 0.3 * canvasHeight + 28 + 16);
+        context.fillText(this.game.coinsCollected + " COINS COLLECTED", 0.8 * canvasWIDTH, 0.3 * canvasHeight + 32 + 16 + 16);
+    } else if ((this.game.touchMode || app.compactMode) && this.game.victory > 0) {
+        context.fillStyle = "white";
+        context.font = "32px SmbWeb";
+        context.textAlign = "center";
+        context.fillText("VICTORY ROYALE #" + 1, 0.5 * canvasWIDTH, 0x28);
+    } else if (0x3 < this.game.victory) {
+        context.fillStyle = "white";
+        context.font = "32px SmbWeb";
+        context.textAlign = "center";
+        context.fillText("TOO BAD #" + this.game.victory, 0.5 * canvasWIDTH, 0x28);
+    } else if (this.game.spectatorID !== undefined) {
+        spectateUI = this.resource.getTexture("spec_ui");
+        spectateLeft = this.resource.getTexture("spec_left");
+        spectateRight = this.resource.getTexture("spec_right");
+
+        spectateW = Math.min(spectateUI.width, canvasWIDTH);
+        spectateH = parseInt(spectateW * 0.17);
+
+        specLW = Math.min(spectateLeft.width, canvasWIDTH);
+        specLH = parseInt(specLW * 1);
+        specLX = (canvasWIDTH / 2) - (((spectateW * 0.5) - (specLW / 100) + specLW) + (specLW * 0.5) * 0.3); /* What the fuck */ //0.35 * canvasWIDTH - specLW * 0.5;
+        specLY = 0.8 * canvasHeight + 24;
+
+        specRW = Math.min(spectateRight.width, canvasWIDTH);
+        specRH = parseInt(specRW * 1);
+        specRX = (canvasWIDTH / 2) + (((spectateW * 0.5) - (specRW / 100) + specRW) + ((specRW / 4 - specRW) - (specRW / 10))); /* What the fuck part 2 */ //0.65 * canvasWIDTH - specRW * 0.5;
+        specRY = 0.8 * canvasHeight + 24;
+
+        specLXS = specRX + spectateRight.width;
+        specRXS = specLX + spectateLeft.width;
+
+        context.drawImage(spectateUI, 0.5 * canvasWIDTH - spectateW * 0.5, 0.8 * canvasHeight + 24, spectateW, spectateH);
+        context.drawImage(spectateLeft, specLX, specLY, specLW, specLH);
+        context.drawImage(spectateRight, specRX, specRY, specRW, specRH);
+
+        context.fillStyle = "white";
+        context.font = "16px SmbWeb";
+        context.textAlign = "center";
+        if (app.getPlayerInfo(this.game.spectatorID) !== undefined || this.game.getGhost(this.game.spectatorID) !== undefined)
+            try {
+                ghostname = app.getPlayerInfo(this.game.spectatorID).name;
+            } catch {
+                ghostname = app.game.getGhost(app.game.spectatorID).name;
+            }
+        else
+            ghostname = "";
+        context.fillText(ghostname, (canvasWIDTH / 2), 0.8 * canvasHeight + 60)
+    } else {
+        context.fillStyle = "white";
+        context.font = "24px SmbWeb";
+        context.textAlign = "left";
+        context.fillText(app.compactMode ? '' : playerInfo ? playerInfo.displayName : DEFAULT_PLAYER_NAME, 0x8, 0x20);
+
+        if(!this.game.hideCoinCounter) {
+            sprite = util.sprite.getSprite(objTexture, coinIconIndex);
+            txt = (app.compactMode ? '' : 'x') + (0x9 >= this.game.coins ? '0' + this.game.coins : this.game.coins);
+            context.drawImage(objTexture, sprite[0x0], sprite[0x1], Display.TEXRES, Display.TEXRES, 0x4, app.compactMode ? 0x0A : 0x28, 0x18, 0x18);
+            context.fillText(txt, 0x1e, app.compactMode ? 0x20 : 0x40);
+        }
+
+        sprite = util.sprite.getSprite(skinTexture, 0xd);
+        txtWIDTH = context.measureText(txt).width + 0x1e;
+        context.drawImage(skinTexture, sprite[0x0], sprite[0x1], Display.TEXRES, Display.TEXRES, this.game.hideCoinCounter ? 0x4 : (0x4 + txtWIDTH + 0x10), app.compactMode ? 0x0A : 0x28, 0x18, 0x18);
+        context.fillText((app.compactMode ? '' : 'x') + (0x9 >= this.game.lives ? '0' + this.game.lives : this.game.lives), this.game.hideCoinCounter ? 0x1e : 0x4 + txtWIDTH + 0x10 + 0x1a, app.compactMode ? 0x20 : 0x40);
+        
+        if(this.game instanceof Game) {
+            //timer
+            txt = this.game.getGameTimer((app.compactMode ? app.compactMode : this.game.touchMode));
+            txtWIDTH = context.measureText(txt).width;
+            context.fillText(txt, (canvasWIDTH / 2) - (txtWIDTH / 2), 0x20);
+            //players remaining
+            txt = this.game.remain + (this.game.touchMode || app.compactMode ? 'P' : " PLAYERS REMAIN");
+            txtWIDTH = context.measureText(txt).width;
+            context.fillText(txt, canvasWIDTH - txtWIDTH - 0x8, 0x20);
+        } else if (this.game instanceof LobbyGame) {
+            var pc = app.players.length;
+            txt = this.game.touchMode || app.compactMode ? pc + "P" : "P:" + pc + "/" + app.maxPlayers + " V:" + (pc < app.minPlayers ? "<" + app.minPlayers + "P" : Math.floor(100 * app.votes / pc) + "/" + Math.floor(100 * app.voteRateToStart) + "%") + " T:" + app.ticks;
+            txtWIDTH = context.measureText(txt).width;
+            context.fillText(txt, canvasWIDTH - txtWIDTH - 0x8, 0x20);
+        }
+        //hurry up
+        if (app.hurryingUp) {
+            var hurrySecLeft = Math.max(0, Math.floor((app.hurryUpTime - Date.now()) / 1000));
+            if (hurrySecLeft % 2 == 1) {
+                txt = "MAINTENANCE!";
+                txtWIDTH = context.measureText(txt).width;
+                context.fillText(txt, (canvasWIDTH / 2) - (txtWIDTH / 2), 0x40);
+            }
+            txt = "" + hurrySecLeft;
+            txtWIDTH = context.measureText(txt).width;
+            context.fillText(txt, (canvasWIDTH / 2) - (txtWIDTH / 2), 0x60);
+        }
+        var off = app.compactMode ? 96 : 0;
+        var drawIcon = function (index, onoff) {
+            off += HudButtonOffset;
+            sprite = util.sprite.getSprite(objTexture, index[onoff ? 0x1 : 0x0]);
+            context.drawImage(objTexture, sprite[0x0], sprite[0x1], Display.TEXRES, Display.TEXRES, canvasWIDTH - off, app.compactMode ? 0x0A : 0x28, 0x18, 0x18);
+        }
+        for (var icon of ingameGuiButtons) {
+            if (!icon.padMode || this.game.input.pad.connected())
+                drawIcon(icon.iconIndex, icon.settingName ? app.settings[icon.settingName] : false);
+        }
+    }
+};
+
+Display.prototype.drawTouch = function () {
+    if (this.game.touchMode && this.game.spectatorID === undefined) {
+        var context = this.context,
+            WIDTH = this.canvas.width,
+            HEIGHT = this.canvas.height;
+        this.game.thumbOrigin && (context.fillStyle = "rgba(0,0,0,0.5)", context.fillRect(this.game.thumbOrigin.x - 42.5, this.game.thumbOrigin.y - 42.5, 0x55, 0x55), context.fillStyle = "rgba(255,255,255,1.0)", context.fillRect(this.game.thumbPos.x - 32.5, this.game.thumbPos.y - 32.5, 0x41, 0x41));
+        context.fillStyle = "rgba(0,0,0,0.5)";
+        context.fillRect(WIDTH - 0x55, HEIGHT - 0x55, 0x55, 0x55);
+        context.fillRect(WIDTH - 0x55, HEIGHT - 0xaa, 0x55, 0x55);
+        context.fillStyle = this.game.touchRun ? "rgba(255,255,255,0.75)" : "rgba(0,0,0,0.5)";
+        context.fillRect(WIDTH - 0x55, HEIGHT - 0xff, 0x55, 0x55);
+        context.fillStyle = "white";
+        context.font = "65px SmbWeb";
+        context.textAlign = "left";
+        var txt = 'A',
+            hs = context.measureText(txt).width;
+        context.fillText(txt, WIDTH - hs - 0xa, HEIGHT - 0xa);
+        txt = 'B';
+        hs = context.measureText(txt).width;
+        context.fillText(txt, WIDTH - hs - 7.5, HEIGHT - 0x55 - 0xa);
+        context.fillStyle = this.game.touchRun ? "black" : "white";
+        txt = 'R';
+        hs = context.measureText(txt).width;
+        context.fillText(txt, WIDTH - hs - 7.5, HEIGHT - 0xaa - 0xa);
+    }
+};
+Display.prototype.drawLoad = function () {
+    var canvas = this.context,
+        WIDTH = this.canvas.width,
+        height = this.canvas.height;
+    canvas.fillStyle = "black";
+    canvas.fillRect(0x0, 0x0, WIDTH, height);
+    canvas.font = "32px SmbWeb";
+    canvas.fillStyle = "white";
+    canvas.textAlign = "center";
+    canvas.fillText("Loading Resources...", 0.5 * WIDTH, 0.5 * height);
+};
+Display.prototype.destroy = function () { };
+"use strict";
+
+function World(game, data) {
+    this.game = game;
+    this.initial = data.initial;
+    this.assets = data.assets;
+    this.levels = [];
+    this.minZoom = 0x8;
+    this.maxZoom = 0x1;
+    this.checkpoint = null;
+    for (var i = 0x0; i < data.world.length; i++) this.levels.push(new Level(game, data.world[i]));
+}
+World.prototype.step = function () {
+    for (var i = 0x0; i < this.levels.length; i++) this.levels[i].step();
+};
+World.prototype.getInitialLevel = function () {
+    return this.getLevel(this.initial);
+};
+World.prototype.getInitialZone = function () {
+    var level = this.getLevel(this.initial);
+    return this.getZone(level.id, level.initial);
+};
+World.prototype.getLevel = function (levelId) {
+    for (var i = 0x0; i < this.levels.length; i++) {
+        var level = this.levels[i];
+        if (level.id === levelId) return level;
+    }
+};
+World.prototype.getZone = function (levelId, zoneId) {
+    for (var i = 0x0; i < this.levels.length; i++) {
+        var level = this.levels[i];
+        if (level.id === levelId)
+            for (var j = 0x0; j < level.zones.length; j++) {
+                var zone = level.zones[j];
+                if (zone.id === zoneId) return zone;
+            }
+    }
+};
+
+function Level(game, data) {
+    this.game = game;
+    this.id = data.id;
+    this.name = data.name;
+    this.initial = data.initial;
+    this.zones = [];
+    for (var i = 0x0; i < data.zone.length; i++) this.zones.push(new Zone(game, this.id, data.zone[i]));
+}
+Level.prototype.step = function () {
+    for (var i = 0x0; i < this.zones.length; i++) this.zones[i].step();
+};
+Level.prototype.getInitial = function () {
+    for (var i = 0x0; i < this.zones.length; i++) {
+        var zone = this.zones[i];
+        if (zone.id === this.initial) return zone;
+    }
+};
+Level.prototype.getWarp = function (warpId) {
+    for (var i = 0x0; i < this.zones.length; i++)
+        for (var zone = this.zones[i], j = 0x0; j < zone.warp.length; j++) {
+            var warp = zone.warp[j];
+            if (warp.id === warpId) return {
+                'level': this.id,
+                'zone': zone.id,
+                'pos': shor2.decode(warp.pos),
+                'data': warp.data
+            };
+        }
+};
+
+function Zone(game, level, input) {
+    this.game = game;
+    this.id = input.id;
+    this.level = level;
+    this.initial = input.initial;
+    this.levelendoff = input.levelendoff || 10;
+    this.color = input.color;
+    this.music = input.music ? input.music : '';
+    this.camera = Number(input.camera) || 0;
+    if (this.music) app.audio.addMusic(this.music);
+    this.fastMusic = this.music ? this.music.replace(".mp3", "_fast.mp3") : "";
+    if (this.fastMusic) app.audio.addMusic(this.fastMusic);
+    this.winmusic = input.winmusic ? input.winmusic : '';
+    this.victorymusic = input.victorymusic ? input.victorymusic : '';
+    this.loopPodium = input.loopPodium ? input.loopPodium : false;
+    if (this.winmusic) app.audio.addMusic(this.winmusic);
+    if (this.victorymusic) app.audio.addMusic(this.victorymusic);
+    this.layers = input.layers || [];
+    vertical = this.vertical;
+    if (input.data) {
+        for (var i = 0; i < this.layers.length && this.layers[i].z < 0; i++);
+        this.layers.splice(i, 0, { z: 0, data: input.data });
+    }
+    this.mainLayer = undefined;
+    this.tileDataType = 0; // 0: legacy, 1: deluxe
+    for (var layer of this.layers) if (layer.z == 0) {
+        this.mainLayer = layer;
+        if(layer.data[0][0] instanceof Array) {
+            this.tileDataType = 1;
+        }
+        break;
+    }
+    this.background = input.background || [];
+    this.obj = input.obj;
+    this.warp = input.warp;
+    this.bumped = [];
+    this.effects = [];
+    this.vines = [];
+    this.sounds = [];
+
+    this.valid = false; // If valid, then objects are processed in this zone
+
+    PlayerObject.LEVEL_END_MOVE_OFF["x"] = parseInt(this.levelendoff);
+}
+Zone.prototype.update = function (game, pid, level, zone, x, y, type) {
+    var y2 = this.dimensions().y - 0x1 - y;
+    var tdType = (this.tileDataType === 1 ? tdAny : td32);
+    var td = tdType.decode(this.mainLayer.data[y2][x]);
+    td.definition.TRIGGER(game, pid, td, level, zone, x, y, type);
+};
+Zone.prototype.step = function () {
+    for (var i = 0; i < this.bumped.length; i++) {
+        var eff = this.bumped[i];
+        var tdType = (this.tileDataType === 1 ? tdAny : td32);
+        var tile = tdType.decode(this.mainLayer.data[eff.y][eff.x]);
+        if (tile.bump > 0) {
+            this.mainLayer.data[eff.y][eff.x] = tdType.bump(this.mainLayer.data[eff.y][eff.x], tile.bump - 1);
+        } else {
+            this.bumped.splice(i--, 1);
+        }
+    }
+    
+    for (var i = 0x0; i < this.effects.length; i++) {
+        var eff = this.effects[i];
+        if (eff.garbage) {
+            this.effects.splice(i--, 0x1);
+        } else {
+            eff.step();
+        }
+    }
+    for (var i = 0x0; i < this.vines.length; i++) {
+        var vine = this.vines[i];
+        if (0x0 > vine.y) {
+            this.vines.splice(i--, 0x1);
+        } else {
+            this.mainLayer.data[vine.y--][vine.x] = vine.td;
+        }
+    }
+    for (var i = 0x0; i < this.sounds.length; i++) this.sounds[i].done() && this.sounds.splice(i--, 0x1);
+    td32.update(this.game);
+};
+Zone.prototype.tile = function (x, y) {
+    y = this.height() - 0x1 - y;
+    return this.mainLayer.data[y][x];
+};
+Zone.prototype.bump = function (x, y) {
+    var y2 = this.dimensions().y - 0x1 - y;
+    var tdType = this.tileDataType === 1 ? tdAny : td32;
+    this.mainLayer.data[y2][x] = tdType.bump(this.mainLayer.data[y2][x], 0xf);
+    this.bumped.push({
+        'x': x,
+        'y': y2
+    });
+    this.play(x, y, "bump.mp3", 0.5, 0.04);
+};
+Zone.prototype.underbump = function (x, y) {
+    var y2 = this.dimensions().y - 0x1 + y;
+    this.mainLayer.data[y2][x] = td32.underbump(this.mainLayer.data[y2][x], 0xf);
+    this.bumped.push({
+        'x': x,
+        'y': y2
+    });
+    this.play(x, y, "bump.mp3", 0.5, 0.04);
+};
+Zone.prototype.replace = function (x, y, rep) {
+    y = this.height() - 0x1 - y;
+    this.mainLayer.data[y][x] = rep;
+};
+Zone.prototype.replaceFlip = function (x, y, rep) {
+    y = this.height() - 0x1 - y;
+    this.mainLayer.data[y][x] = BLOCK_DATA[rep]['flipData'];
+    setTimeout(() => {
+        this.mainLayer.data[y][x] = BLOCK_DATA[rep]['tileData']
+    }, 5000);
+};
+Zone.prototype.cooldown = function (x, y, solid, original) {
+    y = this.height() - 0x1 - y;
+    this.mainLayer.data[y][x] = solid;
+    setTimeout(() => {
+        this.mainLayer.data[y][x] = original;
+    }, 270);
+};
+Zone.prototype.grow = function (x, y, td) {
+    y = this.dimensions().y - 0x1 - y;
+    this.vines.push({
+        'x': x,
+        'y': y,
+        'td': td
+    });
+};
+Zone.prototype.break = function (x, y, rep) {
+    var y2 = this.dimensions().y - 0x1 - y;
+    var tdType = this.tileDataType === 1 ? tdAny : td32;
+    var tile = tdType.decode16(this.mainLayer.data[y2][x]);
+    this.mainLayer.data[y2][x] = rep;
+    this.effects.push(new BreakBlockEffect(vec2.make(x, y), tile.index));
+    this.play(x, y, "break.mp3", 1.5, 0.04);
+};
+Zone.prototype.coin = function (x, y) {
+    this.dimensions();
+    this.effects.push(new JumpingCoinEffect(vec2.make(x, y)));
+};
+Zone.prototype.play = function (x, y, path, gainValue, playbackRateDeviation) {
+    if (this.game.getZone() === this) {
+        var audio = app.audio.getSpatialAudio(path, gainValue, playbackRateDeviation, "effect");
+        audio.play(vec2.make(x, y));
+        this.sounds.push(audio);
+    }
+};
+Zone.prototype.width = function () {
+    return this.layers[0].data[0].length;
+};
+Zone.prototype.height = function () {
+    return this.layers[0].data.length;
+};
+Zone.prototype.dimensions = function () {
+    return vec2.make(this.width(), this.height());
+};
+Zone.prototype.getTile = function (pos) {
+    var dims = this.dimensions();
+    pos = vec2.copy(pos);
+    pos.y = dims.y - pos.y - 0x1;
+    var tdType = this.tileDataType === 1 ? tdAny : td32;
+    return tdType.decode(this.mainLayer.data[Math.max(0x0, Math.min(dims.y, Math.floor(pos.y)))][Math.max(0x0, Math.min(dims.x, Math.floor(pos.x)))]);
+};
+Zone.prototype.getTiles = function (pos, dim) {
+    var dims = this.dimensions(),
+        pos2 = vec2.copy(pos);
+    pos2.y = dims.y - pos2.y;
+    var left = parseInt(Math.max(Math.min(Math.floor(pos2.x) - 0x1, dims.x), 0x0));
+    var right = parseInt(Math.max(Math.min(Math.ceil(pos2.x + dim.x) + 0x1, dims.x), 0x0));
+    var y = parseInt(Math.max(Math.min(Math.floor(pos2.y - dim.y) - 0x1, dims.y), 0x0));
+    var bottom = parseInt(Math.max(Math.min(Math.ceil(pos2.y) + 0x1, dims.y), 0x0));
+    var result = [];
+    for (; y < bottom; y++)
+        for (var x = left; x < right; x++) {
+            var tdType = (this.tileDataType === 1 ? tdAny : td32);
+            var tile = tdType.decode(this.mainLayer.data[y][x]);
+            tile.pos = vec2.make(x, dims.y - 0x1 - y);
+            tile.ind = [y, x];
+            result.push(tile);
+        }
+    return result;
+};
+Zone.prototype.getEffects = function (displayList, textList) {
+    for (var i = 0x0; i < this.effects.length; i++) this.effects[i].draw(displayList, textList);
+};
+"use strict";
+
+function Game(data) {
+    document.getElementById("privLobby").style.display = "none";
+    document.getElementById("settings-show-privLobby").style.display = "none";
+    this.container = document.getElementById("game");
+    this.canvas = document.getElementById("game-canvas");
+    this.input = new Input(this, this.canvas);
+    this.display = new Display(this, this.container, this.canvas, data.resource);
+    this.display.ensureSkin(app.net.skin);
+    if (!(this instanceof LobbyGame) && !(this instanceof JailGame) && app.charMusic && app.net.skin in SKIN_MUSIC_URL) {
+        app.settings.muteMusic = true;
+    }
+    this.objects = [];
+    this.team = this.pid = undefined;
+    this.sounds = [];
+    this.load(data);
+    this.lastDraw = this.frame = 0x0;
+    this.delta = util.time.now();
+    this.buffer = [
+        [],
+        []
+    ];
+    this.out = [];
+    this.ready = false;
+    this.startTimer = -0x1;
+    this.touchFull = this.touchMode = false;
+    this.thumbPos = this.thumbOrigin = this.thumbId = undefined;
+    this.touchRun = false;
+    this.fillSS = this.cullSS = undefined;
+    this.victory = this.coins = this.remain = 0x0;
+    this.lives = 0x0;
+    this.victoryMusic = false;
+    this.gameOverTimer = this.rate = 0x0;
+    this.gameOver = false;
+    var zoneSize = this.getZone().dimensions();
+    this.display.camera.position(vec2.scale(zoneSize, 0.5));
+    this.levelWarpTimer = 0x0;
+    this.levelWarpId = undefined;
+    this.gameoverReloading = false;
+    this.padReturnToLobby = false;
+    this.playersKilled = 0;
+    this.coinsCollected = 0;
+    this.gameTimerStopped = null;
+    this.gameTimerStopTime = 0;
+    this.poleTimes = 0;
+    this.pauseCamera = false;
+    this.overrideCameraPos = false;
+    this.spectatorID = undefined;
+    this.spectateTimeout = 0;
+    this.spectateOrder = 0;
+    this.pvpVictoryTimeout = 0;
+    this.loopPodium = false;
+    var that = this;
+    this.frameReq = requestAnimFrameFunc.call(window, function () {
+        that.draw();
+    });
+    this.loopReq = setTimeout(function () {
+        that.loop();
+    }, 2);
+}
+
+Game.TICK_RATE = 33;
+Game.FDLC_TARGET = 0x3;
+Game.FDLC_MAX = Game.FDLC_TARGET + 0x2;
+
+/* Frames to wait before executing code */
+Game.LEVEL_WARP_TIME = 100;
+Game.GAME_OVER_TIME = 150;
+Game.SPEC_TIMEOUT_TIME = 50;
+Game.PVP_VICTORY_TIMEOUT = 160;
+
+Game.COINS_TO_LIFE = 0x1e;
+
+function genAssets(data) {
+    if (data.tileAnim) {
+        TILE_ANIMATION = {}
+        TILE_ANIMATION_FILTERED = {}
+        for (var anim of data.tileAnim) {
+            var obj = {};
+            obj.tiles = anim.tiles;
+            obj.delay = anim.delay;
+            obj.tilesets = anim.tilesets || [];
+            TILE_ANIMATION[anim.startTile] = obj;
+            TILE_ANIMATION_FILTERED[anim.startTile] = obj;
+        }
+    }
+    
+    if (data.tileData) {
+        BLOCK_DATA = {};
+        for (var td of data.tileData) {
+            var obj = {}
+            obj.id = td.id;
+            obj.name = td.name
+            obj.tileData = td.tileData;
+            obj.flipData = td.flipData;
+            BLOCK_DATA[obj.id] = obj;
+        }
+    }
+}
+
+Game.prototype.load = function (data) {
+    app.menu.main.winElement.style.display = "none";
+    document.getElementById("settings-return-main").style.display = "";
+    if (this instanceof LobbyGame) {
+        document.getElementById("settings-return-lobby").style.display = "none";
+        document.getElementById("settings-spectator").style.display = "none";
+    } else {
+        document.getElementById("settings-return-lobby").style.display = "";
+        document.getElementById("settings-spectator").style.display = "";
+    }
+
+    app.menu.load.show("Loading game world...");
+
+    /* Load world data */
+    this.world = new World(this, data);
+    var reloadAudio = false;
+    if (data.soundOverridePath && data.soundOverridePath !== "undefined") {
+        app.audio.setCustomSoundPrefix(data.soundOverridePath);
+        reloadAudio = true;
+    }
+    if (data.musicOverridePath && data.musicOverridePath !== "undefined") {
+        app.audio.setCustomMusicPrefix(data.musicOverridePath);
+        reloadAudio = true;
+    }
+    if (data.assets && !app.overrideAssetsJson) {
+        let link = isLink(data.assets);
+        $.getJSON(link ? data.assets : ASSETS_URL + "assets/" + data.assets, function (data) {
+            TILE_ANIMATION = {}
+            TILE_ANIMATION_FILTERED = {}
+            for (var anim of data.tileAnim) {
+                var obj = {};
+                obj.tiles = anim.tiles;
+                obj.delay = anim.delay;
+                obj.tilesets = anim.tilesets || [];
+                TILE_ANIMATION[anim.startTile] = obj;
+                TILE_ANIMATION_FILTERED[anim.startTile] = obj;
+            }
+            if (!data.tileData) return;
+            for (var td of data.tileData) {
+                var obj = {}
+                obj.id = td.id;
+                obj.name = td.name
+                obj.tileData = td.tileData;
+                obj.flipData = td.flipData;
+                BLOCK_DATA[obj.id] = obj;
+            }
+        });
+    } else {
+        $.getJSON(ASSETS_URL + "assets/assets.json", function (data) {
+            TILE_ANIMATION = {}
+            TILE_ANIMATION_FILTERED = {}
+            for (var anim of data.tileAnim) {
+                var obj = {};
+                obj.tiles = anim.tiles;
+                obj.delay = anim.delay;
+                obj.tilesets = anim.tilesets || [];
+                TILE_ANIMATION[anim.startTile] = obj;
+                TILE_ANIMATION_FILTERED[anim.startTile] = obj;
+            }
+            if (!data.tileData) return;
+            for (var td of data.tileData) {
+                var obj = {}
+                obj.id = td.id;
+                obj.name = td.name
+                obj.tileData = td.tileData;
+                obj.flipData = td.flipData;
+                BLOCK_DATA[obj.id] = obj;
+            }
+        });
+    }
+    if(data.podiumLoop) {
+      if(data.podiumLoop == false) return;
+      else { this.loopPodium = true };
+    }
+    if(data.minZoom) {
+      try { this.world.minZoom = data.minZoom; }
+      catch { this.world.minZoom = 0x8; app.menu.warn.show("Cannot set min zoom, fallback initialized"); }
+    }
+    if(data.maxZoom) {
+      try { this.world.maxZoom = data.maxZoom; }
+      catch { this.world.maxZoom = 0x1; app.menu.warn.show("Cannot set max zoom, fallback initialized"); }
+    }
+
+    if(data.hideCoins) {
+      this.hideCoinCounter = true;
+    }
+
+    this.lifeage(true);
+
+    if (reloadAudio)
+        app.audio.initWebAudio(app);
+
+    var filterByTileset = function (dict, tileset) {
+        return Object.keys(dict).filter(x => dict[x].tilesets.length == 0 || dict[x].tilesets.includes(tileset))
+            .reduce((res, key) => (res[key] = dict[key], res), {});
+    };
+
+    TILE_ANIMATION_FILTERED = filterByTileset(TILE_ANIMATION, data.resource.filter(x => x.id == "map")[0].src);
+    OBJ_ANIMATION_FILTERED = filterByTileset(OBJ_ANIMATION, data.resource.filter(x => x.id == "obj")[0].src);
+
+    /* Spawn objects from world obj params */
+    for (var i = 0; i < this.world.levels.length; i++) {
+        var lvl = this.world.levels[i];
+        for (var j = 0; j < lvl.zones.length; j++) {
+            var zn = lvl.zones[j];
+            for (var k = 0; k < zn.obj.length; k++) {
+                var obj = zn.obj[k];
+                var oid = obj.pos;
+                var pgen = [oid]; // obj.pos here is a shor2, we use it as the oid for this object
+                for (var l = 0; l < obj.param.length; l++) { pgen.push(obj.param[l]); }
+                if (zn.maxOid === undefined || oid > zn.maxOid) zn.maxOid = oid;
+                this.createObject(obj.type, lvl.id, zn.id, shor2.decode(obj.pos), pgen);
+            }
+        }
+    }
+
+    /* Download backgrounds */
+    for (var i = 0; i < this.world.levels.length; i++) {
+        var lvl = this.world.levels[i];
+        for (var j = 0; j < lvl.zones.length; j++) {
+            var zn = lvl.zones[j];
+            if(zn.background) {
+                for (var k=0;k<zn.background.length;k++) {
+                  var layer = zn.background[k];
+                  this.display.resource.addTexture({ "id": "bg" + layer.z + lvl.id + zn.id, "src": layer.url });
+                }
+            }
+        }
+    }
+};
+
+/* Immediately sends a json packet */
+Game.prototype.send = function (packet) {
+    app.net.send(packet);
+};
+
+/* Returns false if the packet is not of a type that we know how to handle */
+Game.prototype.handlePacket = function (packet) {
+    if (packet.designation) {
+        this.doUpdate([packet]);
+        return true;
+    }
+
+    /* Parse packet and apply */
+    switch (packet.type) {
+        /* Ingame Type Packets gxx */
+        case "g12": { this.updatePlayerList(packet); return true; }
+        case "g13": { this.gameStartTimer(packet); return true; }
+        
+        /* Input Type Packets ixx */
+        default: { return false; }
+    }
+};
+
+/* G12 */
+Game.prototype.updatePlayerList = function (packet) {
+    app.players = packet.players;
+    app.enrichPlayers();
+    if (undefined === this.pid) { return; }
+    this.updateTeam();
+    if (this.isDev) app.menu.game.updatePlayerList(app.players);
+    var pInfo = app.getPlayerInfo(this.pid);
+    if(pInfo) { app.badges = pInfo.badges; }
+};
+
+Game.prototype.getAlivePlayers = function () {
+    var queue = [];
+    var players = app.players;
+
+    for (var i = 0; i < players.length; i++) {
+        var player = players[i];
+
+        var ghost = this.getGhost(player.id);
+        if (ghost && (ghost.pid !== this.getPlayer().pid) && !ghost.spectator) queue.push(ghost.pid);
+    };
+
+    return queue;
+};
+
+Game.prototype.changeTabLobby = function () {
+    let glbtn = document.getElementById("lobbyBtn");
+    let sqbtn = document.getElementById("squadBtn");
+    let glmsg = document.getElementById("messagesGlobal");
+    let sqmsg = document.getElementById("messagesSquad");
+
+    sqbtn.style.border = "";
+    sqmsg.style.display = "none";
+
+    glbtn.style.border = "2px solid white";
+    glmsg.style.display = "";
+    app.global = 1;
+};
+
+Game.prototype.changeTabSquad = function () {
+    let glbtn = document.getElementById("lobbyBtn");
+    let sqbtn = document.getElementById("squadBtn");
+    let glmsg = document.getElementById("messagesGlobal");
+    let sqmsg = document.getElementById("messagesSquad");
+
+    glbtn.style.border = "";
+    glmsg.style.display = "none";
+
+    sqbtn.style.border = "2px solid white";
+    sqmsg.style.display = "";
+    app.global = 0;
+};
+
+Game.prototype.handleKeyPress = function (evt) {
+    var chat = document.getElementById("chat-input");
+    switch (evt.keyCode) {
+        case 0xd : {
+            this.sendMessage(chat.value);
+            break;
+        }
+    }
+};
+
+Game.prototype.sendMessage = function (data) {
+    app.net.send({
+        "type": "gsm",
+        "message": data,
+        "global": app.global //(document.getElementById("lobbyBtn").style["text-decoration"] === 'underline')
+    });
+    document.getElementById("chat-input").value = "";
+};
+
+Game.prototype.specPrevious = function () {
+    let players = this.getAlivePlayers();
+    let len = players.length;
+    if (len === 0 || len === 1) return;
+
+    if (this.spectateOrder === 0) {
+        this.spectatorID = players[len - 1];
+        this.spectateOrder = len - 1;
+    } else {
+        if (players[this.spectateOrder - 1] !== undefined) {
+            this.spectatorID = players[this.spectateOrder - 1];
+            this.spectateOrder -= 1;
+        } else {
+            this.spectatorID = players[len - 1];
+            this.spectateOrder = len - 1;
+        }
+    }
+};
+
+Game.prototype.specNext = function () {
+    let players = this.getAlivePlayers();
+    let len = players.length;
+    if (len === 0 || len === 1) return;
+
+    if (this.spectateOrder === 0) {
+        this.spectatorID = players[1];
+        this.spectateOrder = 1;
+    } else {
+        if (players[this.spectateOrder + 1] !== undefined) {
+            this.spectatorID = players[this.spectateOrder + 1];
+            this.spectateOrder += 1;
+        } else {
+            this.spectatorID = players[0];
+            this.spectateOrder = 0;
+        }
+    }
+};
+
+Game.prototype.getGameTimer = function (compact) {
+    if (this.gameTimerStopped !== null) return this.gameTimerStopped;
+    if (this.startDelta === undefined) return compact ? "00:00" : "00:00:000";
+    var now = util.time.now() - this.poleTimes; // get the time now minus the poleTimes
+    var diff = now - this.startDelta; // diff in seconds between now and start
+    var m = Math.floor(diff / 60000); // get minutes value
+    var s = Math.floor(diff / 1000) % 60; // get seconds value
+    var ms = diff % 1000; // get milliseconds value
+    if (m < 10) m = "0" + m; // add a leading zero if it's single digit
+    if (s < 10) s = "0" + s; // add a leading zero if it's single digit
+    if (ms < 10) ms = "00" + ms; // add two leadings zeros if it's single digit
+    else if (ms < 100) ms = "0" + ms; // add a leading zero if it's double digit
+    return m + ":" + s + (compact ? '' : (":" + ms));
+}
+
+Game.prototype.resumeGameTimer = function () {
+    if (this.gameTimerStopped === null) return;
+    this.gameTimerStopped = null;
+    this.poleTimes += util.time.now() - this.gameTimerStopTime;
+}
+
+Game.prototype.stopGameTimer = function (touchMode = false) {
+    if (this.gameTimerStopped !== null) return;
+    this.gameTimerStopped = this.getGameTimer(app.compactMode ? app.compactMode : touchMode);
+    this.gameTimerStopTime = util.time.now();
+}
+
+/* G13 */
+Game.prototype.gameStartTimer = function (packet) {
+    if (this.startTimer < 0) { this.play("alert.mp3", 1., 0.); }
+    if (packet.time > 0) { this.startTimer = packet.time; this.remain = app.players.length; document.getElementById("settings-spectator").style.display = (this.remain < 2 ? "none" : "") }
+    else { this.doStart(); }
+};
+
+Game.prototype.updateTeam = function () {
+    var playerInfo = app.getPlayerInfo(this.pid);
+    if (undefined === playerInfo) { return; }
+    if (this.team = playerInfo.team) {
+        if (this.team === '') { document.getElementById("squadBtn").style.display = ""; }
+        for (var i = 0x0; i < app.players.length; i++) {
+            var player = app.players[i];
+            if (player.id !== this.pid && (player.team === this.team || player.isDev)) {
+                var ghost = this.getGhost(player.id);
+                ghost && (ghost.name = player.displayName);
+            }
+        }
+    }
+};
+
+Game.prototype.handleBinary = function (data) {
+    var de = NETX.decode(data);
+
+    if (!this.ready) { this.doUpdate(de); return; }
+    this.updatePacket(de);
+};
+
+Game.prototype.updatePacket = function (data) {
+    this.buffer.push(data);
+    while (this.buffer.length > Game.FDLC_MAX) {
+        var d = this.buffer.shift();
+        this.doUpdate(d);
+    }
+};
+
+Game.prototype.doUpdate = function (datas) {
+    for (var i = 0; i < datas.length; i++) {
+        var data = datas[i];
+        switch (data.designation) {
+            case 0x02: { this.doNET002(data); break; }    //ASSIGN_PID
+            case 0x03: { this.doNET003(data); break; }    //ADD_LIFE
+            case 0x10: { this.doNET010(data); break; }    //CREATE_PLAYER_OBJECT
+            case 0x11: { this.doNET011(data); break; }    //KILL_PLAYER_OBJECT
+            case 0x12: { this.doNET012(data); break; }    //UPDATE_PLAYER_OBJECT
+            case 0x13: { this.doNET013(data); break; }    //PLAYER_OBJECT_EVENT
+            case 0x17: { this.doNET017(data); break; }    //PLAYER_KILL_EVENT
+            case 0x18: { this.doNET018(data); break; }    //PLAYER_RESULT_REQUEST
+            case 0x20: { this.doNET020(data); break; }    //OBJECT_EVENT_TRIGGER
+            case 0x21: { this.doNET021(data); break; }    //GET_COIN
+            case 0x22: { this.doNET022(data); break; }    //GET_COIN_LB
+            case 0x23: { this.doNET023(data); break; }    //ADD_FLAG_1UP
+            case 0x30: { this.doNET030(data); break; }    //TILE_EVENT_TRIGGER
+        }
+    }
+};
+
+/* ASSIGN_PID [0x02] */
+Game.prototype.doNET002 = function (n) {
+    this.pid = n.pid;
+    this.skin = n.skin;
+    this.isDev = n.isDev;
+    this.isMod = n.isMod;
+    this.ready = true;
+    app.menu.game.show();
+};
+
+/* ADD_LIFE [0x03] */
+Game.prototype.doNET003 = function (n) {
+    this.lifeage();
+};
+
+/* CREATE_PLAYER_OBJECT [0x10] */
+Game.prototype.doNET010 = function (n) {
+    if (n.pid === this.pid) {
+        this.lives = n.lives;
+        return;
+    }
+    if (this.getGhost(n.pid) && this.getGhost(n.pid).sprite !== PlayerObject.SPRITE.G_DEAD) {
+        return;
+    }
+    var obj = this.createObject(PlayerObject.ID, n.level, n.zone, shor2.decode(n.pos), [n.pid, n.skin, n.isDev, false, n.isMod]);
+    obj.setState(PlayerObject.SNAME.GHOST);
+    obj.name = app.getPlayerInfo(n.pid).displayName;
+    obj.badges = app.getPlayerInfo(n.pid).badges;
+    obj.lives = n.lives;
+    this.remain = this.getRemain();
+};
+
+Game.prototype.doNET011 = function (n) {
+    if (n.pid !== this.pid) {
+        var ghost = this.getGhost(n.pid);
+        if (ghost) {
+            ghost.kill();
+        }
+        this.remain = this.getRemain();
+    } else {
+        this.lives = n.lives;
+    }
+    document.getElementById("settings-spectator").style.display = (this.remain < 2 ? "none" : "");
+};
+
+Game.prototype.doNET012 = function (data) {
+    if (data.pid !== this.pid) {
+        var ghost = this.getGhost(data.pid);
+        if (ghost) ghost.update(data);
+    }
+};
+
+Game.prototype.doNET013 = function (player) {
+    player.pid !== this.pid && this.getGhost(player.pid).trigger(player.type);
+};
+
+Game.prototype.doNET017 = function (packet) {
+    this.remain = this.getRemain();
+    this.playersKilled++;
+};
+
+Game.prototype.doNET018 = function (data) {
+    if (!(0x0 >= data.result)) {
+        data.pid === this.pid ? this.rate = data.extra : 0x0 !== this.rate && data.result++;
+        var ghost = this.getGhost(data.pid);
+        if (ghost) {
+            var txt = this.getText(ghost.level, ghost.zone, data.result.toString());
+            if (txt) {
+                var name = app.getPlayerInfo(data.pid).displayName;
+                this.createObject(TextObject.ID, txt.level, txt.zone, vec2.add(txt.pos, vec2.make(0x0, -0x3)), [undefined, -0.1, 0.25, "#FFFFFF", name]);
+            }
+        }
+        if (data.pid === this.pid) {
+            var player = this.getPlayer();
+            if (player) {
+                player.axe(data.result);
+                this.victory = data.result;
+                var that = this;
+                setTimeout(function () {
+                    document.getElementById('return').style.display = "block";
+                    that.padReturnToLobby = true;
+                }, 3000);
+            }
+        }
+    }
+};
+
+Game.prototype.doNET020 = function (data) {
+    var isLocalPlayer = data.pid === this.pid;
+    if (!(isLocalPlayer && 0xa0 > data.event)) {
+        var obj = this.getObject(data.level, data.zone, data.oid);
+        obj && obj.update(data.event);
+    }
+};
+
+Game.prototype.doNET021 = function (data) {
+    this.addCoin(data.type, false);
+};
+
+Game.prototype.doNET022 = function (data) {
+    var pl = this.getPlayer();
+    var zn = this.getZone(pl.level, pl.zone);
+    zn.effects.push(new RisingLabelEffect(pl.pos, "coins: " + data.coins));
+};
+
+Game.prototype.doNET023 = function (data) {
+    var pl = this.getPlayer();
+    var zn = this.getZone(pl.level, pl.zone);
+    zn.effects.push(new RisingLabelEffect(pl.pos, "1UP"))
+}
+
+Game.prototype.doNET030 = function (data) {
+    var isLocalPlayer = data.pid === this.pid;
+    if (!isLocalPlayer)
+        this.world.getZone(data.level, data.zone).update(this, data.pid, data.level, data.zone, data.pos.x, data.pos.y, data.event);
+};
+
+Game.prototype.doStart = function () {
+    if (this.pid === undefined) return; //player ID not yet received
+    this.startTimer = -0x1;
+    this.startDelta = util.time.now();
+    this.doSpawn();
+};
+
+Game.prototype.doDetermine = function () {
+    var lastInput = this.input.pop();
+    var ply = this.getPlayer();
+    if (ply) {
+        0x0 < lastInput.touch.length ? (
+            this.touchMode = true,
+            app.compactMode = true
+        ) : 0x0 < lastInput.keyboard.length && (this.touchMode = false);
+        this.touchMode ? this.doTouch(lastInput) : this.doInput(lastInput);
+    }
+};
+
+Game.prototype.doTouch = function (lastInput) {
+    if(this.startTimer !== -1) { return; }
+
+    var inp = this.input,
+        player = this.getPlayer();
+    this.display.camera.scale = 0x2;
+    try {
+        if (!this.touchFull || window.innerHeight != screen.height) {
+            var elem = document.documentElement;
+            elem.requestFullscreen ? document.body.requestFullscreen() : elem.mozRequestFullScreen ? elem.mozRequestFullScreen() : elem.webkitRequestFullscreen ? elem.webkitRequestFullscreen() : elem.msRequestFullscreen && elem.msRequestFullscreen();
+            this.touchFull = true;
+        }
+    } catch {
+        console.log("Could not transfer to fullscreen or is already in fullscreen.")
+    }
+    var game = this;
+    var canvasWIDTH = this.display.canvas.width
+    var canvasHeight = this.display.canvas.height;
+    var touchAPressed = false;
+    var touchBPressed = false;
+    var off = 0;
+    var triggers = [{
+        'pos': vec2.make(canvasWIDTH - 0x55, canvasHeight - 0x55),
+        'dim': vec2.make(0x55, 0x55),
+        'press': function () {
+            touchAPressed = true;
+        }
+    }, {
+        'pos': vec2.make(canvasWIDTH - 0x55, canvasHeight - 0xaa),
+        'dim': vec2.make(0x55, 0x55),
+        'press': function () {
+            touchBPressed = true;
+        }
+    }, {
+        'pos': vec2.make(canvasWIDTH - 0x55, canvasHeight - 0xff),
+        'dim': vec2.make(0x55, 0x55),
+        'click': function () {
+            game.touchRun = !game.touchRun;
+        }
+    }];
+    for (var tch, i = 0x0; i < inp.touch.pos.length; i++) {
+        var input = inp.touch.pos[i];
+        if (this.thumbId === input.id) tch = input, this.thumbId = input.id, this.thumbPos = input;
+        else
+            for (i = 0x0; i < triggers.length; i++) {
+                var trigger = triggers[i];
+                var off = 0;
+                for (var icon of ingameGuiButtons) {
+                    off += HudButtonOffset;
+
+                    if (this.spectatorID !== undefined) {
+                        if (specLXS !== undefined && specLY !== undefined && specRX !== undefined && specRY !== undefined) {
+                            if (squar.inside(input, vec2.make(canvasWIDTH - (specLXS), specLY), vec2.make(0x38, 0x38))) { this.specPrevious(); }
+                            else if (squar.inside(input, vec2.make(canvasWIDTH - (specRXS), specRY), vec2.make(0x38, 0x38))) { this.specNext(); }
+                        }
+                    }
+                }
+                squar.inside(input, trigger.pos, trigger.dim) && trigger.press && trigger.press();
+            }
+    }
+    for (var i = 0x0; i < lastInput.touch.length; i++) {
+        input = lastInput.touch[i];
+        inp = false;
+
+        if (player.spectator) inp = true;
+
+        for (i = 0x0; i < triggers.length; i++)
+            var off = app.compactMode ? 96 : 0;
+        for (var icon of ingameGuiButtons) {
+            off += HudButtonOffset;
+            if (icon.click && squar.inside(input, vec2.make(canvasWIDTH - (off), app.compactMode ? 0x0A : 0x28), vec2.make(0x18, 0x18))) {
+                inp = true;
+                icon.click && icon.click();
+                break;
+            }
+        }
+
+        let deadzone = canvasWIDTH / 2;
+        if (input.x > deadzone) inp = true;
+
+        for (var i = 0x0; i < triggers.length; i++)
+            if (trigger = triggers[i], squar.inside(input, trigger.pos, trigger.dim)) {
+                //inp = true;
+                trigger.click && trigger.click();
+                break;
+            } tch || inp || (tch = input, this.thumbId = input.id, this.thumbPos = this.thumbOrigin = input);
+    }
+    var lim;
+    if (tch && game.startTimer == -1) {
+        var dist = Math.min(0x40, vec2.distance(this.thumbPos, this.thumbOrigin));
+        var direction = vec2.normalize(vec2.subtract(this.thumbPos, this.thumbOrigin));
+        lim = vec2.scale(direction, dist / 0x40);
+        this.thumbPos = vec2.add(this.thumbOrigin, vec2.scale(direction, dist));
+    } else { this.thumbPos = this.thumbOrigin = this.thumbId = undefined; }
+
+    if (player && direction) {
+        var mov = [0, 0];
+        var taunt = false;
+
+        if (lim.x > 0.33) { mov[0]++; }
+        if (lim.x < -0.33) { mov[0]--; }
+        if (lim.y > 0.33) { mov[1]--; }
+        if (lim.y < -0.33) { mov[1]++; taunt = true; }
+
+        player.input(mov, touchAPressed, game.touchRun ? !touchBPressed : touchBPressed, false, taunt);
+    }
+    else if (player) { player.input([0, 0], touchAPressed, game.touchRun ? !touchBPressed : touchBPressed, false, false); }
+
+    /* player && direction ? (direction = [0x0, 0x0], 0.33 < lim.x && direction[0x0]++, -0.33 > lim.x && direction[0x0]--, 0.33 < lim.y && direction[0x1]--, -0.33 > lim.y && direction[0x1]++, player.input(direction, touchAPressed, this.touchRun ? !touchBPressed : touchBPressed)) : player && player.input([0x0, 0x0], touchAPressed, this.touchRun ? !touchBPressed : touchBPressed); */
+};
+
+Game.prototype.doInput = function (lastInput) {
+    this.input.pad.update();
+    var input = this.input,
+        mouse = this.input.mouse,
+        keys = this.input.keyboard.keys,
+        pad = this.input.pad;
+    this.inx27 = keys[0x1b];
+    var player = this.getPlayer();
+    if (player) {
+        var abtnD = [0x0, 0x0];
+        (keys[input.assignK.up] || pad.button(input.assignG.up) || -0.1 > pad.ax.y) && abtnD[0x1]++;
+        (keys[input.assignK.down] || pad.button(input.assignG.down) || 0.1 < pad.ax.y) && abtnD[0x1]--;
+        (keys[input.assignK.left] || pad.button(input.assignG.left) || -0.1 > pad.ax.x) && abtnD[0x0]--;
+        (keys[input.assignK.right] || pad.button(input.assignG.right) || 0.1 < pad.ax.x) && abtnD[0x0]++;
+        var abtnA = keys[input.assignK.a] || pad.button(input.assignG.a),
+            abtnB = keys[input.assignK.b] || pad.button(input.assignG.b),
+            abtnTA = keys[input.assignK.ta] || pad.button(input.assignG.ta),
+            abtnU = keys[input.assignK.up] || pad.button(input.assignG.up);
+        mouse.spin && this.display.camera.zoom(mouse.spin);
+        player.input(abtnD, abtnA, abtnB, abtnTA, abtnU);
+        var game = this;
+        var canvasWIDTH = this.display.canvas.width;
+        for (var i = 0x0; i < lastInput.mouse.length; i++) {
+            var mouse = lastInput.mouse[i];
+            if (0x0 === mouse.btn) {
+                var off = app.compactMode ? 96 : 0;
+                for (var icon of ingameGuiButtons) {
+                    if (!icon.padMode || this.input.pad.connected()) {
+                        off += HudButtonOffset;
+                        if (icon.click && squar.inside(mouse.pos, vec2.make(canvasWIDTH - (off), app.compactMode ? 0x0A : 0x28), vec2.make(0x18, 0x18))) { icon.click(); }
+                    }
+                }
+
+                if (this.spectatorID !== undefined) {
+                    if (specLXS !== undefined && specLY !== undefined && specRX !== undefined && specRY !== undefined) {
+                        if (squar.inside(mouse.pos, vec2.make(canvasWIDTH - (specLXS), specLY), vec2.make(0x38, 0x38))) { game.specPrevious(); }
+                        else if (squar.inside(mouse.pos, vec2.make(canvasWIDTH - (specRXS), specRY), vec2.make(0x38, 0x38))) { game.specNext(); }
+                    }
+                }
+            }
+        }
+    }
+};
+
+Game.prototype.doStep = function () {
+    var player = this.getPlayer();
+    if (player && undefined !== this.levelWarpId && 0x0 < this.levelWarpTimer && 0x1 > --this.levelWarpTimer) {
+        var initialLevel = this.world.getLevel(this.levelWarpId).getInitial();
+        var checkpoint = this.world.checkpoint;
+        player.level = initialLevel.level;
+        player.zone = initialLevel.id;
+        player.pos = shor2.decode(initialLevel.initial);
+        if(checkpoint && checkpoint.level == player.level) {
+            player.level = checkpoint.level;
+            player.zone = checkpoint.zone;
+            player.pos = shor2.decode(checkpoint.pos);
+        }
+        player.autoTarget = undefined;
+        player.grounded = false;
+        player.moveSpeed = 0;
+        player.fallSpeed = 0;
+        player.show();
+        player.invuln();
+        this.levelWarpId = undefined;
+        this.pauseCamera = false;
+        this.pauseCameraY = false;
+        this.overrideCameraPos = false;
+        if (!(this.game instanceof LobbyGame)) this.resumeGameTimer();
+    }
+    player && this.cullSS && !vec2.equals(player.pos, this.cullSS) && this.out.push(NET015.encode());
+    player && this.fillSS && this.fillSS !== player.fallSpeed && this.out.push(NET015.encode());
+
+    // If there's a player in a zone, then it's valid to be processed (optimization)
+    this.world.levels.forEach(lvl => {
+        lvl.zones.forEach(zn => {
+            zn.valid = this.objects.some(obj => obj instanceof PlayerObject && obj.level === zn.level && obj.zone === zn.id);
+        });
+    });
+
+    // Update objects & delete garbage
+    for (var i = 0; i < this.objects.length; i++) {
+        var obj = this.objects[i];
+        var zone = this.world.getZone(obj.level, obj.zone);
+        
+        // Perform step if zone is valid
+        if(zone.valid) { 
+            obj.step(); 
+        }
+        
+        if(obj.garbage) { 
+            this.objects.splice(i--, 1); 
+        }
+    }
+
+    this.cullSS = player ? vec2.copy(player.pos) : undefined;
+    this.fillSS = player ? player.fallSpeed : undefined;
+    var zone = this.getZone();
+    if (player && player.pid !== this.spectatorID && this.getGhost(this.spectatorID) !== undefined && !player.dead && this.lives === -1) {
+        let ghost = this.getGhost(this.spectatorID);
+        if (ghost) {
+            /* Possible solution for sometimes spectating other spectators */
+            if (ghost.pos.y === -1 || ghost.spectator) { this.specNext(); }
+
+            player.pos.x = ghost.pos.x; player.pos.y = -1;
+            if (player.level !== ghost.level) { player.level = ghost.level; player.pos = vec2.copy(ghost.pos); };
+            if (player.zone !== ghost.zone) { player.zone = ghost.zone; player.pos = vec2.copy(ghost.pos); };
+            if (!ghost.isState(PlayerObject.SNAME.HIDE)) this.overrideCameraPos = vec2.make(ghost.pos.x, ghost.pos.y)
+        }
+    } else {
+        if (this.lives == -1 && player.spectator === true) {
+            ++this.spectateTimeout;
+
+            if (this.spectateTimeout > Game.SPEC_TIMEOUT_TIME) {
+                if (this.getGhost(this.spectatorID) === undefined) {
+                    let remain = this.getRemain();
+                    if (remain > 0) {
+                        let queue = this.getAlivePlayers();
+                        this.spectatorID = queue[0];
+                        this.spectateTimeout = 0;
+                    } else {
+                        if (!this.gameoverReloading && this.spectateTimeout > Game.SPEC_TIMEOUT_TIME) {
+                            Cookies.set("go_to_lobby", "1");
+                            location.reload();
+                            this.gameoverReloading = true;
+                        }
+                    }
+                }
+            };
+        }
+    };
+    if(player && !player.dead) {
+        switch (zone.camera) {
+            case 0 : {
+                if(this.pauseCamera) { break; }
+                // Horizontal Scrolling
+                this.display.camera.position(vec2.make(this.overrideCameraPos ? this.overrideCameraPos.x : player.pos.x, 0.5 * zone.dimensions().y));
+                break;
+            }
+            case 1 : {
+                if(this.pauseCameraY) { break; }
+                // Vertical Scrolling (horizontal is always centered)
+                this.display.camera.positionX(zone.dimensions().x*.5); this.display.camera.positionY(this.overrideCameraPos ? Math.min(zone.dimensions().y-7, -this.overrideCameraPos.y + zone.dimensions().y) : Math.min(zone.dimensions().y-7, -player.pos.y + zone.dimensions().y)); break;
+            } 
+            case 2 : {
+                if(!this.pauseCamera) this.display.camera.position(vec2.make(this.overrideCameraPos ? this.overrideCameraPos.x : player.pos.x, 0.5 * zone.dimensions().y));
+                if(!this.pauseCameraY) this.display.camera.positionY(this.overrideCameraPos ? Math.min(zone.dimensions().y-7, -this.overrideCameraPos.y + zone.dimensions().y) : Math.min(zone.dimensions().y-7, -player.pos.y + zone.dimensions().y));
+                break;
+            }
+            case 3 : {
+                /* Centered */
+                this.display.camera.position(vec2.make(0.5 * zone.dimensions().x, 0.5 * zone.dimensions().y));
+                break;
+            }
+        }
+    }
+    this.world.step();
+    if (app.hurryingUp && app.hurryUpTime <= Date.now() && 0 >= this.levelWarpTimer) {
+        app.hurryingUp = false;
+        this.lives = 0;
+        if (player) player.kill();
+    }
+    for (var i = 0x0; i < this.sounds.length; i++) this.sounds[i].done() && this.sounds.splice(i--, 0x1);
+    this.doMusic();
+    app.audio.update();
+    if (undefined === this.startDelta || this.gameOver || player) {
+        if (this.gameOver) {
+            ++this.gameOverTimer;
+            if (this.gameOverTimer > Game.GAME_OVER_TIME && !this.gameoverReloading && !(this.game instanceof JailGame)) {
+                var pc = this.getRemain();
+
+                if (pc < 1) { // Don't activate if we're the only player
+                    Cookies.set("go_to_lobby", "1");
+                    location.reload();
+                    this.gameoverReloading = true;
+                } else {
+                    this.gameOver = false;
+                    this.gameOverTimer = 0x0;
+                    this.lives = -1; // Activate spectate mode
+                    
+                    document.getElementById('return').style.display = "block";
+
+                    this.doSpawn();
+                    this.getPlayer().spectate();
+                }
+            }
+        } else
+            this.gameOverTimer = 0x0;
+    } else if ((0x0 < this.lives) && 0x0 >= this.victory) {
+        var level = this.getZone().level;
+        this.doSpawn();
+        this.levelWarp(level);
+    } else if ((this.lives == -1) && 0x0 >= this.victory && !(this instanceof JailGame)) {
+        var ply = this.getPlayer();
+        var level = this.getZone().level;
+        this.doSpawn();
+        ply.spectate();
+    } else if (0x2d < ++this.gameOverTimer && !(this instanceof JailGame)) {
+        this.gameOver = true;
+        this.gameOverTimer = 0x0;
+    }
+    this.lastDraw = this.frame;
+    this.frame++;
+};
+
+Game.prototype.doSpawn = function () {
+    if (!this.getPlayer()) {
+        var zone = this.getZone(),
+            initial = zone.initial,
+            checkpoint = this.world.checkpoint;
+        
+        var lev = zone.level;
+        var zon = zone;
+        var pos = initial;
+
+        if (checkpoint) {
+            if (checkpoint.level == zone.level) { lev = checkpoint.level; zon = this.world.getZone(lev, checkpoint.zone); pos = checkpoint.pos; zon.initial = pos; }
+            else { checkpoint = null; }
+        }
+
+        var obj = this.createObject(PlayerObject.ID, lev, zon.id, shor2.decode(pos), [this.pid, this.skin, this.isDev, false, this.isMod, false]);
+        if(this instanceof LobbyGame) {
+            obj.name = app.getPlayerInfo(this.pid).displayName;
+            if(app.badges) { obj.badges = app.badges; }
+        }
+        this.out.push(NET010.encode(lev, zon.id, pos));
+        if (app.net.gameMode === 1 && !(this instanceof LobbyGame) && !(this instanceof JailGame)) {
+            obj.tfm(0x2);
+            obj.rate = 0x71;
+        }
+    }
+    this.updateTeam();
+};
+
+Game.prototype.doMusic = function () {
+    var player = this.getPlayer(),
+        zone = this.getZone();
+    if (this.gameOver) {
+        app.audio.setMusic("gameover.mp3", false);
+    } else if (player && player.dead) {
+        app.audio.setMusic((app.charMusic && app.net.skin in SKIN_SFX_URL ? SKIN_SFX_URL[app.net.skin] : "") + "dead.mp3", false);
+    }
+    else if (player && player.autoTarget && 0x0 >= this.victory) {
+        if(player.autoTargetType === 2) {
+            if(!this.postMusic) {
+                this.postMusic = true;
+                app.audio.setMusic("hurry.mp3", false);
+            }
+        } else {
+            this.postMusic = false;
+        }
+        if(player.autoTargetType === 2) {
+            if(this.postMusic && !app.audio.music.playing) {
+                app.audio.setMusic(zone.winmusic || "level.mp3", false);
+            }
+        } else {
+            app.audio.setMusic(zone.winmusic || "level.mp3", false);
+        }
+    } else if (this.victory > 0 && !this.victoryMusic) {
+        if (zone.victorymusic !== '') {
+            app.audio.setMusic(zone.victorymusic, false);
+            this.victoryMusic = true;
+        } else {
+            app.audio.setMusic(zone.winmusic || 'castle.mp3', false);
+        }
+        if (!this.victoryMusic) {
+            this.victoryMusic = true;
+        }
+    } else if (0x0 < this.victory && 0x4 > this.victory && this.victoryMusic && !app.audio.music.playing) {
+        app.audio.setMusic(zone.victorymusic || "victory.mp3", (this.loopPodium ? true : false));
+    } else if (app.hurryingUp) {
+        if ((Date.now() - app.hurryUpStart) < 1000 * app.audio.getAudioLength("hurry.mp3")) {
+            app.audio.setMusic("hurry.mp3", false);
+        } else {
+            if ('' !== zone.fastMusic)
+                app.audio.setMusic(zone.fastMusic, true);
+            else
+                app.audio.stopMusic();
+        }
+    } else if (player && 0x0 >= this.levelWarpTimer && undefined !== this.startDelta && !this.victoryMusic) {
+        if ('' !== zone.music)
+            app.audio.setMusic(zone.music, true);
+        else
+            app.audio.stopMusic();
+    }
+};
+
+Game.prototype.checkpoint = function (obj) {
+    var world = app.game.world;
+    world.checkpoint = { 'pos': shor2.encode(obj.pos.x, obj.pos.y), 'level': obj.level, 'zone': obj.zone }
+};
+
+Game.prototype.doPush = function () {
+    var player = this.getPlayer();
+    player && !player.dead && this.out.push(NET012.encode(player.level, player.zone, player.pos, player.sprite.ID, player.reverse, player.spectator));
+    var packets = this.out;
+    this.out = [];
+    app.net.send({"packets": packets, "type": "g02"});
+};
+
+Game.prototype.createObject = function (id, level, zoneId, pos, extraArgs) {
+    var args = [undefined, this, level, zoneId, pos];
+    for (var i = 0x0; i < extraArgs.length; i++) args.push(extraArgs[i]);
+    var objtype = GameObject.OBJECT(id);
+    if (!objtype) return undefined;
+    var object = new (Function.prototype.bind.apply(objtype, args))();
+    this.objects.push(object);
+    return object;
+};
+
+Game.prototype.getObject = function (level, zone, oid) {
+    for (var i = 0; i < this.objects.length; i++) {
+        var obj = this.objects[i];
+        if (undefined !== obj.oid && obj.level === level && obj.zone === zone && obj.oid === oid) return obj;
+    }
+};
+
+Game.prototype.getFlag = function (level, zone) {
+    for (var i = 0; i < this.objects.length; i++) {
+        var obj = this.objects[i];
+        if (obj.level === level && obj.zone === zone && obj instanceof FlagpoleObject) return obj;
+    }
+};
+
+Game.prototype.getAxe = function (level, zone) {
+    for (var i = 0; i < this.objects.length; i++) {
+        var obj = this.objects[i];
+        if (obj.level === level && obj.zone === zone && obj instanceof AxeObject) return obj;
+    }
+};
+
+Game.prototype.getText = function (level, zone, text) {
+    for (var i = 0; i < this.objects.length; i++) {
+        var obj = this.objects[i];
+        if (obj && obj.level === level && obj.zone === zone && obj instanceof TextObject && obj.text === text.toString()) return obj;
+    }
+};
+
+Game.prototype.getPlatforms = function () {
+    for (var zone = this.getZone(), plats = [], i = 0x0; i < this.objects.length; i++) {
+        var plat = this.objects[i];
+        (plat instanceof MovingPlatformObject || plat instanceof BusPlatformObject || plat instanceof PathFollowingPlatform) && plat.level === zone.level && plat.zone === zone.id && plats.push(plat);
+    }
+    return plats;
+};
+
+Game.prototype.getGhost = function (pid) {
+    for (var i = 0; i < this.objects.length; i++) {
+        var obj = this.objects[i];
+        if (undefined !== obj.pid && obj.pid === pid) return obj;
+    }
+};
+
+Game.prototype.getPlayer = function () {
+    for (var i = 0; i < this.objects.length; i++) {
+        var obj = this.objects[i];
+        if (undefined !== obj.pid && obj.pid === this.pid) return obj;
+    }
+};
+
+Game.prototype.getZone = function () {
+    var _0x215d79 = this.getPlayer();
+    return _0x215d79 ? this.lastZone = this.world.getZone(_0x215d79.level, _0x215d79.zone) : this.lastZone ? this.lastZone : this.world.getInitialZone();
+};
+
+Game.prototype.getRemain = function () {
+    for (var result = 0x0, i = 0x0; i < app.players.length; i++) {
+        var ghost = this.getGhost(app.players[i].id);
+        ghost && !ghost.dead && !ghost.spectator && result++;
+    }
+    return result;
+};
+
+Game.prototype.play = function (path, gainValue, playbackRateDeviation) {
+    var audio = app.audio.getAudio(path, gainValue, playbackRateDeviation, "effect");
+    audio.play();
+    this.sounds.push(audio);
+};
+
+Game.prototype.levelWarp = function (level) {
+    /* For whatever reason in ER1 warping to level 3 warped you back to level 2? I'm hoping this fixes it. */
+    /* 2 minutes later: LET'S FUCKING GO. */
+    if (this.getPlayer().isState(PlayerObject.SNAME.HIDE) || this.levelWarpTimer !== 0) return;
+
+    this.levelWarpId = level;
+    this.levelWarpTimer = Game.LEVEL_WARP_TIME;
+    this.getPlayer().hide();
+    //this.world.checkpoint = null;
+};
+
+Game.prototype.addCoin = function (jackpot, visual) {
+    if (visual) {
+        if (jackpot)
+            this.play("gold.mp3", 1, 0x0);
+        else {
+            this.play("coin.mp3", 0.4, 0x0);
+        }
+    } else {
+        this.coinsCollected += 1;
+        this.coins = Math.min(0x63, this.coins + 0x1);
+        this.coins >= Game.COINS_TO_LIFE && (this.coins = 0x0);
+    }
+};
+
+Game.prototype.lifeage = function (noSound) {
+    this.lives = Math.min(0x63, this.lives + 0x1);
+    if (!noSound) this.play("life.mp3", 0x1, 0x0);
+};
+
+firstLoop = true;
+Game.prototype.loop = function () {
+    try {
+        if (this.ready && undefined !== this.startDelta) {
+            var time = util.time.now(),
+                frm = parseInt((time - this.startDelta) / Game.TICK_RATE);
+            if (frm > this.frame) {
+                for (var cont = true; this.buffer.length > Game.FDLC_TARGET || cont && 0x0 < this.buffer.length;) {
+                    var data = this.buffer.shift();
+                    this.doUpdate(data);
+                    cont = false;
+                }
+                for (this.doDetermine(); frm > this.frame;) this.doStep();
+                this.doPush();
+                this.delta = time;
+            }
+        }
+    } catch (e) {
+        console.error(e);
+    }
+    var game = this;
+    this.loopReq = setTimeout(function () {
+        game.loop();
+    }, 0x2);
+};
+
+Game.prototype.draw = function () {
+    this.lastDraw === this.frame && undefined !== this.startDelta || this.display.draw();
+    var _0x19f533 = this;
+    this.frameReq = requestAnimFrameFunc.call(window, function () {
+        _0x19f533.draw();
+    });
+};
+
+Game.prototype.destroy = function () {
+    cancelAnimFrameFunc.call(window, this.frameReq);
+    clearTimeout(this.loopReq);
+    this.input.destroy();
+    this.display.destroy();
+    for (var obj of this.objects) obj.destroy && obj.destroy();
+};
+"use strict";
+
+function LobbyGame(_0x5a8616) {
+    Game.call(this, _0x5a8616);
+    this.lobbyTimer = 0x5a;
+    if (app.audioElement !== undefined) {
+        app.audioElement.setAttribute('src', app.charMusic && app.net.skin in SKIN_MUSIC_URL ? SKIN_MUSIC_URL[app.net.skin] : LOBBY_MUSIC_URL);
+        app.audioElement.load;
+        app.audioElement.volume = 0.18;
+        app.audioElement.loop = true;
+        if (!app.settings.muteMusic)
+            app.audioElement.play();
+    }
+}
+LobbyGame.prototype.load = Game.prototype.load;
+LobbyGame.prototype.send = Game.prototype.send;
+LobbyGame.prototype.handlePacket = Game.prototype.handlePacket;
+LobbyGame.prototype.updatePlayerList = Game.prototype.updatePlayerList;
+LobbyGame.prototype.gameStartTimer = function () { };
+LobbyGame.prototype.updateTeam = Game.prototype.updateTeam;
+LobbyGame.prototype.handleBinary = Game.prototype.handleBinary;
+LobbyGame.prototype.updatePacket = Game.prototype.updatePacket;
+LobbyGame.prototype.doUpdate = Game.prototype.doUpdate;
+LobbyGame.prototype.doNET002 = Game.prototype.doNET002;
+LobbyGame.prototype.doNET003 = Game.prototype.doNET003;
+LobbyGame.prototype.doNET010 = Game.prototype.doNET010;
+LobbyGame.prototype.doNET011 = Game.prototype.doNET011;
+LobbyGame.prototype.doNET012 = Game.prototype.doNET012;
+LobbyGame.prototype.doNET013 = Game.prototype.doNET013;
+LobbyGame.prototype.doNET020 = Game.prototype.doNET020;
+LobbyGame.prototype.doNET021 = Game.prototype.doNET021;
+LobbyGame.prototype.doNET030 = Game.prototype.doNET030;
+LobbyGame.prototype.doStart = Game.prototype.doStart;
+LobbyGame.prototype.doDetermine = Game.prototype.doDetermine;
+LobbyGame.prototype.getAlivePlayers = Game.prototype.getAlivePlayers;
+LobbyGame.prototype.changeTabLobby = Game.prototype.changeTabLobby;
+LobbyGame.prototype.changeTabSquad = Game.prototype.changeTabSquad;
+LobbyGame.prototype.handleKeyPress = Game.prototype.handleKeyPress;
+LobbyGame.prototype.sendMessage = Game.prototype.sendMessage;
+LobbyGame.prototype.specPrevious = Game.prototype.specPrevious;
+LobbyGame.prototype.specNext = Game.prototype.specNext;
+LobbyGame.prototype.doInput = Game.prototype.doInput;
+LobbyGame.prototype.doTouch = Game.prototype.doTouch;
+LobbyGame.prototype.doStep = function () {
+    if (app.net.mode === 1) this.doSpawn();
+    Game.prototype.doStep.call(this);
+};
+LobbyGame.prototype.doSpawn = Game.prototype.doSpawn;
+LobbyGame.prototype.doMusic = Game.prototype.doMusic;
+LobbyGame.prototype.doPush = Game.prototype.doPush;
+LobbyGame.prototype.createObject = Game.prototype.createObject;
+LobbyGame.prototype.getObject = Game.prototype.getObject;
+LobbyGame.prototype.getFlag = Game.prototype.getFlag;
+LobbyGame.prototype.getPlatforms = Game.prototype.getPlatforms;
+LobbyGame.prototype.getGhost = Game.prototype.getGhost;
+LobbyGame.prototype.getPlayer = Game.prototype.getPlayer;
+LobbyGame.prototype.getZone = Game.prototype.getZone;
+LobbyGame.prototype.getRemain = Game.prototype.getRemain;
+LobbyGame.prototype.play = Game.prototype.play;
+LobbyGame.prototype.levelWarp = Game.prototype.levelWarp;
+LobbyGame.prototype.addCoin = Game.prototype.addCoin;
+LobbyGame.prototype.lifeage = Game.prototype.lifeage;
+LobbyGame.prototype.loop = function () {
+    0x0 < this.lobbyTimer ? this.lobbyTimer-- : undefined === this.startDelta && this.doStart();
+    Game.prototype.loop.call(this);
+};
+LobbyGame.prototype.draw = Game.prototype.draw;
+LobbyGame.prototype.destroy = function () {
+    Game.prototype.destroy.call(this);
+    if (app.audioElement !== undefined && !(app.charMusic && app.net.skin in SKIN_MUSIC_URL)) {
+        app.audioElement.pause();
+        app.audioElement.remove();
+        app.audioElement = undefined;
+    }
+}
+"use strict";
+
+function JailGame(data) {
+    Game.call(this, data);
+    this.lobbyTimer = 0x5a;
+}
+JailGame.prototype.load = Game.prototype.load;
+JailGame.prototype.send = Game.prototype.send;
+JailGame.prototype.handlePacket = Game.prototype.handlePacket;
+JailGame.prototype.updatePlayerList = Game.prototype.updatePlayerList;
+JailGame.prototype.gameStartTimer = function () { };
+JailGame.prototype.updateTeam = Game.prototype.updateTeam;
+JailGame.prototype.handleBinary = Game.prototype.handleBinary;
+JailGame.prototype.updatePacket = Game.prototype.updatePacket;
+JailGame.prototype.doUpdate = Game.prototype.doUpdate;
+JailGame.prototype.doNET002 = Game.prototype.doNET002;
+JailGame.prototype.doNET003 = Game.prototype.doNET003;
+JailGame.prototype.doNET010 = Game.prototype.doNET010;
+JailGame.prototype.doNET011 = Game.prototype.doNET011;
+JailGame.prototype.doNET012 = Game.prototype.doNET012;
+JailGame.prototype.doNET013 = Game.prototype.doNET013;
+JailGame.prototype.doNET020 = Game.prototype.doNET020;
+JailGame.prototype.doNET021 = Game.prototype.doNET021;
+JailGame.prototype.doNET030 = Game.prototype.doNET030;
+JailGame.prototype.doStart = Game.prototype.doStart;
+JailGame.prototype.doDetermine = Game.prototype.doDetermine;
+JailGame.prototype.doInput = Game.prototype.doInput;
+JailGame.prototype.doTouch = Game.prototype.doTouch;
+JailGame.prototype.doStep = function () {
+    Game.prototype.doStep.call(this);
+};
+JailGame.prototype.doSpawn = function () { };
+JailGame.prototype.doMusic = Game.prototype.doMusic;
+JailGame.prototype.doPush = Game.prototype.doPush;
+JailGame.prototype.createObject = Game.prototype.createObject;
+JailGame.prototype.getObject = Game.prototype.getObject;
+JailGame.prototype.getFlag = Game.prototype.getFlag;
+JailGame.prototype.getPlatforms = Game.prototype.getPlatforms;
+JailGame.prototype.getGhost = Game.prototype.getGhost;
+JailGame.prototype.getPlayer = Game.prototype.getPlayer;
+JailGame.prototype.getZone = Game.prototype.getZone;
+JailGame.prototype.getRemain = Game.prototype.getRemain;
+JailGame.prototype.play = Game.prototype.play;
+JailGame.prototype.levelWarp = Game.prototype.levelWarp;
+JailGame.prototype.addCoin = Game.prototype.addCoin;
+JailGame.prototype.lifeage = Game.prototype.lifeage;
+JailGame.prototype.loop = function () {
+    0x0 < this.lobbyTimer ? this.lobbyTimer-- : undefined === this.startDelta && this.doStart();
+    Game.prototype.loop.call(this);
+};
+JailGame.prototype.draw = Game.prototype.draw;
+JailGame.prototype.destroy = Game.prototype.destroy;
+"use strict";
+
+function App() {
+    this.menu = new Menu();
+    this.net = new Network();
+    this.goToLobby = Cookies.get("go_to_lobby") === "1";
+    if (this.goToLobby)
+        Cookies.remove("go_to_lobby");
+
+    var params = new URLSearchParams(window.location.search);
+
+    this.inviteCode = params.get("code");
+    this.inviteMode = params.get("mode");
+    window.history.replaceState(null, null, window.location.pathname);
+
+    if (this.inviteCode !== null && this.inviteMode !== null) this.goToLobby = true;
+
+    this.session = Cookies.get("session_legacy");
+
+    this.chatHidden = Cookies.get("hide_chat") === "1";
+    this.global = 1;
+
+    this.audioElement = document.createElement('audio');
+    this.audioElement.setAttribute('src', MENU_MUSIC_URL);
+    this.audioElement.load;
+    this.audioElement.volume = 0.2;
+    this.audioElement.loop = true;
+
+    this.hurryingUp = false;
+    this.hurryUpStart = null;
+    this.hurryUpTime = null;
+    this.overrideSkinImg = "overrideSkinImg" in localStorage ? makeImageFromData(localStorage["overrideSkinImg"]) : undefined;
+    this.overrideMapImg = "overrideMapImg" in localStorage ? makeImageFromData(localStorage["overrideMapImg"]) : undefined;
+    this.overrideObjImg = "overrideObjImg" in localStorage ? makeImageFromData(localStorage["overrideObjImg"]) : undefined;
+    this.autoMove = Cookies.get("autoMove") === "true";
+    this.compactMode = Cookies.get("compactMode") === "true";
+    this.accessibilityMode = Cookies.get("accessibilityMode") === "true";
+    this.settings = {};
+    this.settings.muteMusic = 0x1 === parseInt(Cookies.get("music"));
+    this.settings.muteSound = 0x1 === parseInt(Cookies.get("sound"));
+    this.settings.disableText = 0x1 === parseInt(Cookies.get("text"));
+    this.settings.forcemodel = 0x1 === parseInt(Cookies.get("forcemodel"));
+    this.settings.showSettings = false;
+    this.audio = new Audio(this);
+    this.players = [];
+    if (0x1 !== parseInt(Cookies.get("music")))
+        this.audioElement.play();
+    this.statusUpdater = null;
+    this.charMusic = Cookies.get("char_music") === "0";
+}
+App.prototype.mobileCheck = function () {
+    let check = false;
+    (function(a){if(/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(a)||/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0,4))) check = true;})(navigator.userAgent||navigator.vendor||window.opera);
+    return check;
+};
+App.prototype.viewProfile = function(name) {
+    if(!this.net.webSocket)
+    {
+        this.net.connect([Network.CONNECTTYPE.GETPROFILE, name]);
+        return;
+    }
+
+    this.net.send({ "type": "lgp", "username": name });
+};
+App.prototype.handleViewProfile = function(data) {
+    if(data.status == false) {
+        app.menu.warn.show("Failed to retrieve profile information");
+        return;
+    }
+    data = data.msg;
+    document.getElementById("profilePanel").style.display = "";
+    document.getElementById("profilePanel-name").innerText = data.nickname;
+    document.getElementById("profilePanel-skin").style["background-image"] = "url('https://raw.githubusercontent.com/mroyale/assets/legacy/img/skins/smb_skin" + data.skin +".png')";
+    document.getElementById("profilePanel-wins").innerText = data.wins;
+    document.getElementById("profilePanel-deaths").innerText = data.deaths;
+    document.getElementById("profilePanel-kills").innerText = data.kills;
+    document.getElementById("profilePanel-coins").innerText = data.coins;
+    document.getElementById("profilePanel-lastOnline").innerText = data.lastOnline || "N/A";
+};
+var itemUnlockTimeout = null;
+var itemUnlockQueue = [];
+var unlockInProgress = false;
+
+App.prototype.unlockItem = function(data) {
+    var unlockTask = function() {
+        unlockInProgress = true;
+
+        document.getElementById("itemUnlock").style.display = "";
+        document.getElementById("itemUnlock-title").innerText = data.title;
+        document.getElementById("itemUnlock-description").innerText = data.description;
+
+        var img = document.getElementById("itemUnlock-image");
+        var coords = BADGES_LIST[data.itemID];
+        img.style.backgroundPosition = `-${coords[0]}px -${coords[1]}px`;
+
+        document.getElementById("itemUnlock").classList.add("itemUnlock-down");
+        clearTimeout(itemUnlockTimeout);
+        itemUnlockTimeout = setTimeout(() => {
+            document.getElementById("itemUnlock").classList.remove("itemUnlock-down");
+            document.getElementById("itemUnlock").classList.add("itemUnlock-up");
+            setTimeout(() => {
+                document.getElementById("itemUnlock").classList.remove("itemUnlock-up");
+                unlockInProgress = false;
+                if (itemUnlockQueue.length > 0) {
+                    var nextUnlock = itemUnlockQueue.shift();
+                    nextUnlock();
+                    document.getElementById("itemUnlock-sound").play();
+                }
+            }, 1000);
+        }, 5000);
+    };
+
+    if(unlockInProgress) { itemUnlockQueue.push(unlockTask); }
+
+    if (!unlockInProgress) {
+        unlockTask();
+        document.getElementById("itemUnlock-sound").play();
+    }
+};
+App.prototype.spectate = function () {
+    if(!this.game) { app.menu.warn.show("You aren't in a game!"); return; }
+    if(this.game.remain < 2) { app.menu.warn.show("There needs to be 2 or more players to enable spectator mode"); return; }
+    this.game.out.push(NET011.encode()); // tell server we're dead
+    this.gameOver = false;
+    this.gameOverTimer = 0x0;
+    
+    this.game.doSpawn();
+    this.game.getPlayer().spectate();
+    document.getElementById("settingsPanel").style.display = "none";
+    document.getElementById('return').style.display = "block";
+};
+App.prototype.init = function () {
+    document.getElementById("log").style.display = "none";
+    document.getElementById("link-patch").style.display = "";
+    document.getElementById("main-number").style.display = "";
+    this.toggleText(this.settings.disableText);
+    this.toggleModel(this.settings.forcemodel);
+    if (!this.goToLobby || this.inviteCode === null) {
+        var check = this.mobileCheck();
+        check ? this.menu.disclaim.show() : this.menu.disclaim.show();
+    }
+    var that = this;
+    setTimeout(function () {
+        that.menu.load.show("Loading...");
+
+        if (that.goToLobby && that.session === undefined) {
+            that.menu.main.updateStatsBar();
+            var name = Cookies.get("name");
+            var team = that.inviteCode || Cookies.get("team");
+            var priv = that.inviteCode !== null && that.inviteMode !== null ? true : Cookies.get("priv") === "true";
+            var skin = Cookies.get("skin");
+            var gm = that.inviteMode !== null ? that.inviteMode : Cookies.get("gamemode");
+            that.join(name ? name : "", team ? team : "", priv, skin ? parseInt(skin) : 0, gm ? parseInt(gm) : 0, [0,0,0]);
+            return;
+        }
+
+        that.menu.main.show();
+    }, this.goToLobby || this.inviteCode !== null ? 100 : DISCLAIMER_SCREEN_TIMEOUT);
+};
+App.prototype.load = function (data) {
+    app.menu.name.setAutoMove(app.autoMove);
+    app.menu.name.setCompactMode(app.compactMode);
+    app.menu.name.setAccessibilityMode(app.accessibilityMode);
+    if (this.game instanceof Game) this.menu.error.show("State error. Game already loaded.");
+    else switch (this.game instanceof LobbyGame && this.game.destroy(), data.type) {
+        case "game":
+            this.game = new Game(data);
+            break;
+        case "lobby":
+            this.game = new LobbyGame(data);
+            break;
+        case "jail":
+        case "maintenance":
+            this.game = new JailGame(data);
+            break;
+        default:
+            this.menu.error.show("Critical error! Game file missing type!");
+    }
+
+    if (this.game instanceof Game || this.game instanceof LobbyGame) {
+        let chat = document.getElementById("gameChat");
+        let hidechat = document.getElementById("hiddenChat");
+        let sqdbtn = document.getElementById("squadBtn");
+        
+        if (!app.net.username) {
+            let input = document.getElementById("chat-input");
+            input.disabled = true;
+            input.value = "Register to use chat"
+            //input.value = "text communication is not available for this account"
+            input.style.color = "#FFFFFFAA";
+        }
+
+        app.chatHidden ? hidechat.style.display = "" : chat.style.display = "";
+        document.getElementById("chat-input").onkeyup = (evt) => this.game.handleKeyPress(evt);
+
+        document.getElementById("hideChat").onclick = () => {
+            chat.style.display = "none";
+            hidechat.style.display = "";
+            app.chatHidden = true;
+            Cookies.set("hide_chat", "1", { "expires": 0x1e });
+        };
+
+        hidechat.onclick = () => {
+            hidechat.style.display = "none";
+            chat.style.display = "";
+            app.chatHidden = false;
+            Cookies.set("hide_chat", "0", { "expires": 0x1e });
+        };
+        
+        if (this.game.team === '') { sqdBtn.style.display = ""; }
+        document.getElementById("lobbyBtn").onclick = () => this.game.changeTabLobby();
+        document.getElementById("squadBtn").onclick = () => this.game.changeTabSquad();
+    }
+};
+App.prototype.ingame = function () {
+    return !!this.game;
+};
+App.prototype.join = function (name, team, priv, skin, gm, badges) {
+    if (this.audioElement !== undefined)
+        this.audioElement.pause();
+    this.ingame() ? this.menu.error.show("An error occured while starting game...") : (this.menu.load.show("Finding a match..."), this.net.connect([Network.CONNECTTYPE.GUEST, name, team, priv, skin, gm, badges]));
+};
+App.prototype.login = function (username, pw) {
+    this.menu.load.show("Connecting to game server..."), this.net.connect([Network.CONNECTTYPE.LOGIN, username, pw]);
+};
+App.prototype.logout = function (username, pw) {
+    Cookies.remove("session_legacy");
+    this.net.send({ 'type': "llo" });
+};
+App.prototype.getLeaderboards = function () {
+    this.net.send({ 'type': "llb" });
+};
+App.prototype.requestCaptcha = function () {
+    this.menu.load.show("Connecting to game server..."), this.net.connect([Network.CONNECTTYPE.REQ_CAPTCHA]);
+};
+App.prototype.register = function (username, pw, captcha) {
+    this.menu.load.show("Connecting to game server..."), this.net.connect([Network.CONNECTTYPE.REGISTER, username, pw, captcha]);
+};
+App.prototype.resumeSession = function (session) {
+    this.menu.load.show("Connecting to game server..."), this.net.connect([Network.CONNECTTYPE.RESUME, session]);
+};
+App.prototype.guestLeaderboards = function () {
+    this.menu.load.show("Connecting to game server..."), this.net.connect([Network.CONNECTTYPE.LEADERBOARD]);
+};
+App.prototype.close = function () {
+    this.menu.load.show();
+    this.ingame() && this.net.close();
+    location.reload();
+};
+App.prototype.getPlayerInfo = function (id) {
+    for (var i = 0; i < app.players.length; i++) {
+        var obj = app.players[i];
+        if (obj.id === id) return obj;
+    }
+};
+App.prototype.hurryUp = function (data) {
+    if (!this.hurryingUp) {
+        this.hurryingUp = true;
+        this.hurryUpStart = Date.now();
+        this.hurryUpTime = this.hurryUpStart + data.time * 1000;
+    }
+};
+App.prototype.toggleText = function (val) {
+    this.settings.disableText = (val != null) ? val : !this.settings.disableText;
+    Cookies.set("text", this.settings.disableText ? 0x1 : 0x0, {
+        'expires': 0x1e
+    });
+    document.getElementById("settings-toggle-text").innerText = (this.settings.disableText ? "[X]" : "[ ]") + " Hide Player Names";
+};
+App.prototype.toggleModel = function (val) {
+    this.settings.forcemodel = (val != null) ? val : !this.settings.forcemodel;
+    Cookies.set("forcemodel", this.settings.forcemodel ? 0x1 : 0x0, {
+        'expires': 0x1e
+    });
+    document.getElementById("settings-toggle-model").innerText = (this.settings.forcemodel ? "[X]" : "[ ]") + " Display All Players As Mario";
+};
+function getPlayerDisplayName(player) {
+    return (player.isDev ? "[DEV]" : "") + (player.isGuest ? "[G]" : "") + (player.isMod ? "[MOD]" : "") + player.name;
+}
+function isLink(string) {
+    let url;
+
+    try {
+        url = new URL(string);
+    } catch {
+        return false;
+    }
+
+    return url.protocol === "http:" || url.protocol === "https:"
+};
+App.prototype.enrichPlayers = function (id) {
+    this.players.map(x => {
+        x.displayName = getPlayerDisplayName(x);
+    });
+};
+App.prototype.tick = function (data) {
+    this.ticks = data.ticks;
+    this.votes = data.votes;
+    this.minPlayers = data.minPlayers;
+    this.maxPlayers = data.maxPlayers;
+    this.voteRateToStart = data.voteRateToStart;
+}
+
+var app = new App();
+app.init();
