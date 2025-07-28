@@ -1,8 +1,6 @@
-- 👋 Hi, I’m Saul Goodman
-- 👀 I’m interested in your possession of rights
-- 🌱 I’m currently learning the Constitution that says you have such
-- 💞️ I’m looking to collaborate on proving every man, woman and child in the US is innocent
-- 📫 How to reach me: Better Call Saul
+- 👋 Hi, I’m Pyriel!
+  
+- 📫 I'm about done making my site at https://pyriel.carrd.co where you can find a bit more about me. Go check it there!
 
 <!---
 PRoyale/PRoyale is a ✨ special ✨ repository because its `README.md` (this file) appears on your GitHub profile.
